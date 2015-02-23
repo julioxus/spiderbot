@@ -1,0 +1,17 @@
+body {
+  padding-top: 50px;
+}
+.starter-template {
+  padding: 40px 15px;
+  text-align: center;
+}
+
+#web_input_form{
+	text-align: center;
+	margin: auto;
+}
+
+#input_bar input{
+	margin: auto;
+	width: 600px;
+}
