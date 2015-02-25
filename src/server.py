@@ -41,23 +41,18 @@ def validate(filename):
             encoded_args = urllib.urlencode(payload)
             url = css_validator_url + '/?' + encoded_args
             r = urllib2.urlopen(url)
-            print url
-
             
         else:
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = html_validator_url + '/?' + encoded_args
             r = urllib2.urlopen(url)
-    
-        try:   
-            result = json.load(r)
-        except ValueError:
-            result = 'Error al procesar json'
+     
+        result = json.load(r)
         time.sleep(2)   # Be nice and don't hog the free validator service.
         return result
     else:
-        return 'Error: URL no empieza por http://'
+        return ''
 
 class MainPage(webapp2.RequestHandler):
     
@@ -89,9 +84,9 @@ class Validation(webapp2.RequestHandler):
         result = ''
         result = validate(f)
         
-        if type(result) == 'str':
-            out += result
-        
+        if result == '':
+            out += 'Error: Invalid URL. URL must start with http://'
+                 
         try:
             if f.endswith('.css'):
                 errorcount = result['cssvalidation']['result']['errorcount']
