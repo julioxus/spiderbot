@@ -34,7 +34,7 @@ def validate(filename):
     Raise OSError if curl command returns an error status.
     '''
     
-    if filename.startswith('http://'):
+    if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
         if filename.endswith('.css'):
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
@@ -85,7 +85,7 @@ class Validation(webapp2.RequestHandler):
         result = validate(f)
         
         if result == '':
-            out += 'Error: Invalid URL. URL must start with http://'
+            out += 'Error: Invalid URL. URL must start with http:// or https://'
                  
         try:
             if f.endswith('.css'):
