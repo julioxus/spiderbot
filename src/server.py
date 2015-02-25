@@ -7,9 +7,9 @@ import os
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import ndb
 import urllib
+import urllib2
 import time
 import json
-import commands
 import sys
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -33,29 +33,36 @@ def validate(filename):
     Return '' if the validator does not return valid JSON.
     Raise OSError if curl command returns an error status.
     '''
-    quoted_filename = urllib.quote(filename)
+    
     if filename.startswith('http://'):
         # Submit URI with GET.
         if filename.endswith('.css'):
-            cmd = ('curl -sG -d uri=%s -d output=json -d warning=0 %s'
-                    % (quoted_filename, css_validator_url))
-        else:
-            cmd = ('curl -sG -d uri=%s -d output=json %s'
-                    % (quoted_filename, html_validator_url))
+            #cmd = ('curl -sG -d uri=%s -d output=json -d warning=0 %s'
+            #        % (quoted_filename, css_validator_url))
+            payload = {'uri': filename, 'output': 'json', 'warning': 0}
+            encoded_args = urllib.urlencode(payload)
+            url = css_validator_url + '/?' + encoded_args
+            #r = requests.get(css_validator_url, params=payload)
+            r = urllib2.urlopen(url)
+
             
+        else:
+            #cmd = ('curl -sG -d uri=%s -d output=json %s'
+            #        % (quoted_filename, html_validator_url))
+            payload = {'uri': filename, 'output': 'json', 'warning': 0}
+            encoded_args = urllib.urlencode(payload)
+            url = html_validator_url + '/?' + encoded_args
+            #r = requests.get(css_validator_url, params=payload)
+            r = urllib2.urlopen(url)
     
-        status,output = commands.getstatusoutput(cmd)
-        if status != 0:
-            raise OSError (status, 'failed: %s' % cmd)
-    
-        try:
-            result = json.loads(output)
+        try:   
+            result = json.load(r)
         except ValueError:
-            result = ''
+            result = 'Error al procesar json'
         time.sleep(2)   # Be nice and don't hog the free validator service.
         return result
     else:
-        return ''
+        return 'Error: URL no empieza por http://'
 
 class MainPage(webapp2.RequestHandler):
     
@@ -76,44 +83,47 @@ class login(webapp2.RequestHandler):
 class Validation(webapp2.RequestHandler):
     def post(self):
         
+        out = ''
+        
         f = self.request.get('url')
         
         errors = 0
         warnings = 0
 
-        message('validating: %s ...' % f)
-        retrys = 0
-        while retrys < 2:
-            result = validate(f)
-            if result:
-                break
-            retrys += 1
-            message('retrying: %s ...' % f)
-        else:
-            message('failed: %s' % f)
+        out += "validating: %s ...\n" % f
+        result = ''
+        result = validate(f)
+        
+        if type(result) == 'str':
+            out += result
             errors += 1
-
-        if f.endswith('.css'):
-            errorcount = result['cssvalidation']['result']['errorcount']
-            warningcount = result['cssvalidation']['result']['warningcount']
-            errors += errorcount
-            warnings += warningcount
-            if errorcount > 0:
-                message('errors: %d' % errorcount)
-            if warningcount > 0:
-                message('warnings: %d' % warningcount)
-        else:
-            for msg in result['messages']:
-                if 'lastLine' in msg:
-                    message('%(type)s: line %(lastLine)d: %(message)s' % msg)
-                else:
-                    message('%(type)s: %(message)s' % msg)
-                if msg['type'] == 'error':
-                    errors += 1
-                else:
-                    warnings += 1
-
-
+        
+        try:
+            if f.endswith('.css'):
+                errorcount = result['cssvalidation']['result']['errorcount']
+                warningcount = result['cssvalidation']['result']['warningcount']
+                errors += errorcount
+                warnings += warningcount
+                if errorcount > 0:
+                    out += "errors: %d \n" % errorcount
+                if warningcount > 0:
+                    out += "warnings: %d \n" % warningcount
+            else:
+                for msg in result['messages']:
+                    if 'lastLine' in msg:
+                        out += "%(type)s: line %(lastLine)d: %(message)s \n" % msg
+                    else:
+                        out += "%(type)s: %(message)s \n" % msg
+                    if msg['type'] == 'error':
+                        errors += 1
+                    else:
+                        warnings += 1
+                        
+            self.response.write(out)
+            
+        except:
+            self.response.write(out)
+        
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
