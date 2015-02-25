@@ -37,22 +37,17 @@ def validate(filename):
     if filename.startswith('http://'):
         # Submit URI with GET.
         if filename.endswith('.css'):
-            #cmd = ('curl -sG -d uri=%s -d output=json -d warning=0 %s'
-            #        % (quoted_filename, css_validator_url))
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = css_validator_url + '/?' + encoded_args
-            #r = requests.get(css_validator_url, params=payload)
             r = urllib2.urlopen(url)
+            print url
 
             
         else:
-            #cmd = ('curl -sG -d uri=%s -d output=json %s'
-            #        % (quoted_filename, html_validator_url))
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = html_validator_url + '/?' + encoded_args
-            #r = requests.get(css_validator_url, params=payload)
             r = urllib2.urlopen(url)
     
         try:   
@@ -83,7 +78,7 @@ class login(webapp2.RequestHandler):
 class Validation(webapp2.RequestHandler):
     def post(self):
         
-        out = ''
+        out = ""
         
         f = self.request.get('url')
         
@@ -96,18 +91,20 @@ class Validation(webapp2.RequestHandler):
         
         if type(result) == 'str':
             out += result
-            errors += 1
         
         try:
             if f.endswith('.css'):
                 errorcount = result['cssvalidation']['result']['errorcount']
                 warningcount = result['cssvalidation']['result']['warningcount']
+                
+                for msg in result['cssvalidation']['errors']:
+                    out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
+                
+                for msg in result['cssvalidation']['warnings']:
+                    out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
+                
                 errors += errorcount
                 warnings += warningcount
-                if errorcount > 0:
-                    out += "errors: %d \n" % errorcount
-                if warningcount > 0:
-                    out += "warnings: %d \n" % warningcount
             else:
                 for msg in result['messages']:
                     if 'lastLine' in msg:
@@ -118,11 +115,14 @@ class Validation(webapp2.RequestHandler):
                         errors += 1
                     else:
                         warnings += 1
-                        
-            self.response.write(out)
+            
+            out += "\nErrors: %s \n" % errors
+            out += "Warnings: %s" % warnings
+            
+            self.response.write(out.replace("\n", "<br />"))
             
         except:
-            self.response.write(out)
+            self.response.write(out.replace("\n", "<br />"))
         
 urls = [('/',MainPage),
         ('/login',login),
