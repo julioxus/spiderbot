@@ -141,7 +141,7 @@ class Validation(webapp2.RequestHandler):
                 self.response.write(code)
                 self.response.write('<br/>Request FAILED')
                 
-            except:
+            except ValueError, e:
                 self.response.write('Error: Invalid URL')
         
         
