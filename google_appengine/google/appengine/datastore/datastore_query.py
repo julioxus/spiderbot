@@ -2241,7 +2241,7 @@ class Query(_BaseQuery):
         pb.mutable_compiled_cursor().ParseFromString(
             query_options.start_cursor.to_bytes())
       except ProtocolBuffer.ProtocolBufferDecodeError:
-        raise datastore_errors.BadRequestError('invalid cursor')
+        raise datastore_errors.BadValueError('invalid cursor')
 
 
     if query_options.end_cursor is not None:
@@ -2249,7 +2249,7 @@ class Query(_BaseQuery):
         pb.mutable_end_compiled_cursor().ParseFromString(
             query_options.end_cursor.to_bytes())
       except ProtocolBuffer.ProtocolBufferDecodeError:
-        raise datastore_errors.BadRequestError('invalid cursor')
+        raise datastore_errors.BadValueError('invalid cursor')
 
 
     if ((query_options.hint == QueryOptions.ORDER_FIRST and pb.order_size()) or

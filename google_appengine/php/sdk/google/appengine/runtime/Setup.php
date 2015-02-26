@@ -20,6 +20,7 @@
 
 namespace google\appengine\runtime {
   use google\appengine\ext\session\MemcacheSessionHandler;
+  use org\bovigo\vfs\vfsStream;
 
   // Ensure that the class autoloader is the first include.
   require_once 'google/appengine/runtime/autoloader.php';
@@ -29,6 +30,9 @@ namespace google\appengine\runtime {
 
   // Setup the Memcache session handler
   MemcacheSessionHandler::configure();
+
+  // Initialize direct upload and temp files using VFS.
+  vfsStream::setup('root', null, ['temp' => [], 'uploads' => []]);
 
   if (!empty($_FILES)) {
     // TODO: b/13132830: Remove once feature releases.
@@ -56,16 +60,15 @@ namespace google\appengine\runtime {
       $url_flags);
 }
 
-// Map core PHP function implementations to proper function names. All function
-// implementations should be prefixed with an underscore. The implementations
-// should be mapped to the real (un-prefixed) function name and lazy-loaded.
-// The underscore prefixed functions may then be used for unit testing on an
+// Map core PHP function implementations to proper function names defined in
+// SplOverride class. These functions may then be used for unit testing on an
 // unmodified PHP interpreter which will not allow functions to be redeclared.
 //
 // Additionally due to e2e tests also running on devappserver with an
 // unmodified PHP interpreter the function definitions must be defined
 // conditionally and those e2e tests excluded from devappserver.
 namespace {
+  use google\appengine\runtime\Glob;
   use google\appengine\runtime\SplOverride;
 
   if (!function_exists('gethostname')) {
@@ -80,5 +83,8 @@ namespace {
       return SplOverride::move_uploaded_file($filename, $destination,
                                              $context_options);
     }
+  }
+  if (ini_get('google_app_engine.enable_curl_lite')) {
+    require_once 'google/appengine/runtime/CurlLiteStub.php';
   }
 }

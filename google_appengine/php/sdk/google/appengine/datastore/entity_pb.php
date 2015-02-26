@@ -2669,7 +2669,6 @@ namespace storage_onestore_v3\Index\Property {
 namespace storage_onestore_v3\Index\Property {
   class Mode {
     const MODE_UNSPECIFIED = 0;
-    const SEGMENT = 2;
     const GEOSPATIAL = 3;
   }
 }

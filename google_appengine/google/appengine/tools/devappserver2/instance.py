@@ -266,12 +266,19 @@ class Instance(object):
 
     Returns:
       True if the Instance was started or False, if the Instance has already
-      been quit.
+      been quit or the attempt to start it failed.
     """
     with self._condition:
       if self._quit:
         return False
-    self._runtime_proxy.start()
+    try:
+      self._runtime_proxy.start()
+    except Exception as e:  # pylint: disable=broad-except
+      logger = logging.getLogger()
+      if logger.isEnabledFor(logging.DEBUG):
+        logger.exception(e)
+      logger.error(str(e))
+      return False
     with self._condition:
       if self._quit:
         self._runtime_proxy.quit()

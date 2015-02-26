@@ -36,17 +36,19 @@ import urllib2
 
 _UPLOADING_APP_DOC_URLS = {
     "go": "https://developers.google.com/appengine/docs/go/tools/"
-        "uploadinganapp#Go_Password-less_login_with_OAuth2",
+          "uploadinganapp#Go_Password-less_login_with_OAuth2",
     "php": "https://developers.google.com/appengine/docs/php/tools/"
-        "uploadinganapp#PHP_Password-less_login_with_OAuth2",
+           "uploadinganapp#PHP_Password-less_login_with_OAuth2",
+    "php55": "https://developers.google.com/appengine/docs/php/tools/"
+             "uploadinganapp#PHP_Password-less_login_with_OAuth2",
     "python": "https://developers.google.com/appengine/docs/python/tools/"
-        "uploadinganapp#Python_Password-less_login_with_OAuth2",
+              "uploadinganapp#Python_Password-less_login_with_OAuth2",
     "python27": "https://developers.google.com/appengine/docs/python/tools/"
-        "uploadinganapp#Python_Password-less_login_with_OAuth2",
+                "uploadinganapp#Python_Password-less_login_with_OAuth2",
     "java": "https://developers.google.com/appengine/docs/java/tools/"
-        "uploadinganapp#Passwordless_Login_with_OAuth2",
+            "uploadinganapp#Passwordless_Login_with_OAuth2",
     "java7": "https://developers.google.com/appengine/docs/java/tools/"
-        "uploadinganapp#Passwordless_Login_with_OAuth2",
+             "uploadinganapp#Passwordless_Login_with_OAuth2",
     }
 
 logger = logging.getLogger('google.appengine.tools.appengine_rpc')

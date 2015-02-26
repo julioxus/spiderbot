@@ -18,10 +18,42 @@
  * PHP Unit tests for the AppIdentityService.
  *
  */
+namespace google\appengine\api\app_identity;
 
 use google\appengine\AppIdentityServiceError\ErrorCode;
 use google\appengine\api\app_identity\AppIdentityService;
 use google\appengine\testing\ApiProxyTestBase;
+
+/**
+ * Mock functions for APC cache functions.
+ */
+function apc_fetch($name, &$success) {
+  $GLOBALS['fetch_calls']++;
+  if (isset($GLOBALS['apc_fetch_result'])) {
+    $item = array_shift($GLOBALS['apc_fetch_result']);
+    $result = $item['value'];
+    $success = $item['result'];
+    return $result;
+  }
+  $success = false;
+  return false;
+}
+
+function apc_store($name, $value, $ttl) {
+  $GLOBALS['store_calls']++;
+  return false;
+}
+
+/**
+ * Mock out time() so we can set predicable timestamps for the apc ttl.
+ */
+function time() {
+  return 0;
+}
+
+function rand($min, $max) {
+  return 0;
+}
 
 /**
  * Unittest for AppIdentityService class.
@@ -30,6 +62,8 @@ class AppIdentityServiceTest extends ApiProxyTestBase {
   public function setUp() {
     parent::setUp();
     $this->_SERVER = $_SERVER;
+    $GLOBALS['fetch_calls'] = 0;
+    $GLOBALS['store_calls'] = 0;
   }
 
   public function testDown() {
@@ -162,7 +196,9 @@ class AppIdentityServiceTest extends ApiProxyTestBase {
         'access_token' => $resp->getAccessToken(),
         'expiration_time' => $resp->getExpirationTime(),
     ]));
-    $item->setExpirationTime($resp->getExpirationTime() - 300);
+    $item->setExpirationTime($resp->getExpirationTime() -
+                             AppIdentityService::EXPIRY_SAFETY_MARGIN_SECS -
+                             AppIdentityService::EXPIRY_SHORT_MARGIN_SECS);
     $item->setFlags(
         \google\appengine\runtime\MemcacheUtils::TYPE_PHP_SERIALIZED);
     $item->setSetPolicy(1); // Add
@@ -175,7 +211,26 @@ class AppIdentityServiceTest extends ApiProxyTestBase {
                                     $resp);
   }
 
-  public function testGetAccessTokenCacheHit() {
+  public function testGetAccessTokenInProcessCacheHit() {
+    $scope = 'mail.google.com/send';
+
+    $GLOBALS['apc_fetch_result'][] = ['value' => [
+        'access_token' => 'foobar token',
+        'expiration_time' => 54321,
+      ],
+      'result' => true,
+    ];
+
+    $result = AppIdentityService::getAccessToken($scope);
+
+    $this->assertEquals($result['access_token'], 'foobar token');
+    $this->assertEquals($result['expiration_time'], 54321);
+    $this->assertEquals(1, $GLOBALS['fetch_calls']);
+    $this->assertEquals(0, $GLOBALS['store_calls']);
+    $this->apiProxyMock->verify();
+  }
+
+  public function testGetAccessTokenMemcacheHit() {
     $scope = 'mail.google.com/send';
 
     self::expectGetAccessTokenRequest(array($scope), true);
@@ -184,10 +239,12 @@ class AppIdentityServiceTest extends ApiProxyTestBase {
 
     $this->assertEquals($result['access_token'], 'foo token');
     $this->assertEquals($result['expiration_time'], 12345);
+    $this->assertEquals(1, $GLOBALS['fetch_calls']);
+    $this->assertEquals(1, $GLOBALS['store_calls']);
     $this->apiProxyMock->verify();
   }
 
-  public function testGetAccessTokenCacheMiss() {
+  public function testGetAccessTokenMemcacheMiss() {
     $scope = 'mail.google.com/send';
 
     self::expectGetAccessTokenRequest(array($scope), false);
@@ -196,6 +253,8 @@ class AppIdentityServiceTest extends ApiProxyTestBase {
 
     $this->assertEquals($result['access_token'], 'foo token');
     $this->assertEquals($result['expiration_time'], 12345);
+    $this->assertEquals(1, $GLOBALS['fetch_calls']);
+    $this->assertEquals(1, $GLOBALS['store_calls']);
     $this->apiProxyMock->verify();
   }
 
@@ -208,6 +267,8 @@ class AppIdentityServiceTest extends ApiProxyTestBase {
     $result = AppIdentityService::getAccessToken([$scope1, $scope2]);
     $this->assertEquals($result['access_token'], 'foo token');
     $this->assertEquals($result['expiration_time'], 12345);
+    $this->assertEquals($GLOBALS['fetch_calls'], 1);
+    $this->assertEquals($GLOBALS['store_calls'], 1);
     $this->apiProxyMock->verify();
   }
 

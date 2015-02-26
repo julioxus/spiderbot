@@ -30,8 +30,8 @@ use google\appengine\ImagesGetUrlBaseResponse;
 use google\appengine\ImagesServiceError;
 use google\appengine\ext\cloud_storage_streams\CloudStorageClient;
 use google\appengine\ext\cloud_storage_streams\CloudStorageStreamWrapper;
-use google\appengine\files\GetDefaultGsBucketNameRequest;
-use google\appengine\files\GetDefaultGsBucketNameResponse;
+use google\appengine\GetDefaultGcsBucketNameRequest;
+use google\appengine\GetDefaultGcsBucketNameResponse;
 use google\appengine\runtime\ApiProxy;
 use google\appengine\runtime\ApplicationError;
 use google\appengine\util\ArrayUtil;
@@ -63,13 +63,16 @@ final class CloudStorageTools {
   // The GCS filename format (bucket, object).
   const GS_FILENAME_FORMAT = "gs://%s/%s";
 
+  // The maximum value in seconds for the upload URL timeout option.
+  const MAX_URL_EXPIRY_TIME_SECONDS = 86400;  // 24 hours
+
   /**
    * The list of options that can be supplied to createUploadUrl.
    * @see CloudStorageTools::createUploadUrl()
    * @var array
    */
   private static $create_upload_url_options = ['gs_bucket_name',
-      'max_bytes_per_blob', 'max_bytes_total'];
+      'max_bytes_per_blob', 'max_bytes_total', 'url_expiry_time_seconds'];
 
   /**
    * The list of options that can be suppied to serve.
@@ -122,6 +125,11 @@ final class CloudStorageTools {
    *   bucket that the blobs should be uploaded to. Not specifying a value
    *   will result in the blob being uploaded to the application's default
    *   bucket.
+   * <li>'url_expiry_time_seconds': integer The number of seconds that the
+   *   generated URL can be used for to upload files to Google Cloud Storage.
+   *   Once this timeout expires, the URL is no longer valid and any attempts
+   *   to upload using the URL will fail. Must be a positive integer, maximum
+   *   value is one day (86400 seconds). Default Value: 600 seconds.
    * </ul>
    * @return string The upload URL.
    *
@@ -167,6 +175,24 @@ final class CloudStorageTools {
             'max_bytes_total must be positive.');
       }
       $req->setMaxUploadSizeBytes($val);
+    }
+
+    if (array_key_exists('url_expiry_time_seconds', $options)) {
+      $val = $options['url_expiry_time_seconds'];
+      if (!is_int($val)) {
+        throw new \InvalidArgumentException(
+            'url_expiry_time_seconds must be an integer');
+      }
+      if ($val < 1) {
+        throw new \InvalidArgumentException(
+            'url_expiry_time_seconds must be positive.');
+      }
+      if ($val > self::MAX_URL_EXPIRY_TIME_SECONDS) {
+        throw new \InvalidArgumentException(
+            'url_expiry_time_seconds must not exceed ' .
+            self::MAX_URL_EXPIRY_TIME_SECONDS);
+      }
+      $req->setUrlExpiryTimeSeconds($val);
     }
 
     if (array_key_exists('gs_bucket_name', $options)) {
@@ -602,15 +628,15 @@ final class CloudStorageTools {
    * configured.
    */
   public static function getDefaultGoogleStorageBucketName() {
-    $request = new GetDefaultGsBucketNameRequest();
-    $response = new GetDefaultGsBucketNameResponse();
+    $request = new GetDefaultGcsBucketNameRequest();
+    $response = new GetDefaultGcsBucketNameResponse();
 
-    ApiProxy::makeSyncCall('file',
-                           'GetDefaultGsBucketName',
+    ApiProxy::makeSyncCall('app_identity_service',
+                           'GetDefaultGcsBucketName',
                            $request,
                            $response);
 
-    return $response->getDefaultGsBucketName();
+    return $response->getDefaultGcsBucketName();
   }
 
   /**

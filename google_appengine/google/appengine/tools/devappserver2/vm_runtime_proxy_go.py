@@ -28,22 +28,11 @@ from google.appengine.tools.devappserver2 import go_application
 from google.appengine.tools.devappserver2 import instance
 from google.appengine.tools.devappserver2 import vm_runtime_proxy
 
+REQUEST_ID_HEADER_NAME = 'X-Appengine-Api-Ticket'
 DEBUG_PORT = 5858
 VM_SERVICE_PORT = 8181
 # TODO: Remove this when classic Go SDK is gone.
 DEFAULT_DOCKER_FILE = """FROM google/appengine-go
-
-RUN apt-get install --no-install-recommends -y -q \
-    curl build-essential git mercurial bzr
-RUN mkdir /goroot && curl https://storage.googleapis.com/golang/go1.2.2.linux-amd64.tar.gz | tar xvzf - -C /goroot --strip-components=1
-RUN mkdir /gopath
-
-ENV GOROOT /goroot
-ENV GOPATH /gopath
-ENV PATH $PATH:$GOROOT/bin:$GOPATH/bin
-
-# TODO: Remove next line once google/appengine-go image updates.
-WORKDIR /app
 
 ADD . /app
 RUN /bin/bash /app/_ah/build.sh
@@ -127,7 +116,9 @@ class GoVMRuntimeProxy(instance.RuntimeProxy):
             self._module_configuration.nobuild_files,
             self._module_configuration.skip_files)
 
-        self._vm_runtime_proxy.start(dockerfile_dir=dst_deployment_dir)
+        self._vm_runtime_proxy.start(
+            dockerfile_dir=dst_deployment_dir,
+            request_id_header_name=REQUEST_ID_HEADER_NAME)
 
       logging.info(
           'GoVM vmservice for module "%(module)s" available at '

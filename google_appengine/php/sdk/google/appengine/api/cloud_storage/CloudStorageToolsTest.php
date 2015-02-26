@@ -80,13 +80,13 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
   }
 
   public function testCreateUploadUrl() {
-    $req = new \google\appengine\files\GetDefaultGsBucketNameRequest();
-    $resp = new \google\appengine\files\GetDefaultGsBucketNameResponse();
+    $req = new \google\appengine\GetDefaultGcsBucketNameRequest();
+    $resp = new \google\appengine\GetDefaultGcsBucketNameResponse();
 
-    $resp->setDefaultGsBucketName("some_bucket");
+    $resp->setDefaultGcsBucketName("some_bucket");
 
-    $this->apiProxyMock->expectCall("file",
-                                    "GetDefaultGsBucketName",
+    $this->apiProxyMock->expectCall("app_identity_service",
+                                    "GetDefaultGcsBucketName",
                                     $req,
                                     $resp);
 
@@ -193,6 +193,49 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
         ['max_bytes_total' => -1,]);
   }
 
+  public function testSetUrlExpiryTime() {
+    $req = new \google\appengine\CreateUploadURLRequest();
+    $req->setSuccessPath('http://foo/bar');
+    $req->setMaxUploadSizePerBlobBytes(1 * 1024 * 1024 * 1024);
+    $req->setGsBucketName("some_bucket");
+    $req->setUrlExpiryTimeSeconds(3600);
+
+    $resp = new \google\appengine\CreateUploadURLResponse();
+    $resp->setUrl('http://upload/to/here');
+
+    $this->apiProxyMock->expectCall('blobstore', 'CreateUploadURL', $req,
+        $resp);
+
+    self::$mock_upload_max_filesize = '1G';
+    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar', [
+         'url_expiry_time_seconds' => 60 * 60,
+         'gs_bucket_name' => 'some_bucket',
+    ]);
+    $this->assertEquals($upload_url, 'http://upload/to/here');
+    $this->apiProxyMock->verify();
+  }
+
+  public function testInvalidUrlTimeout() {
+    $this->setExpectedException('\InvalidArgumentException');
+    $upload_url = CloudStorageTools::CreateUploadUrl('http://foo/bar',
+        ['url_expiry_time_seconds' => 'not an int',]);
+  }
+
+  public function testNegativeUrlTimeout() {
+    $this->setExpectedException('\InvalidArgumentException');
+    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar', [
+        'url_expiry_time_seconds' => -1,
+    ]);
+  }
+
+  public function testTooLargeUrlTimeout() {
+    $expiry_time = CloudStorageTools::MAX_URL_EXPIRY_TIME_SECONDS + 1;
+    $this->setExpectedException('\InvalidArgumentException');
+    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar', [
+        'url_expiry_time_seconds' => $expiry_time,
+    ]);
+  }
+
   public function testGsBucketName() {
     $req = new \google\appengine\CreateUploadURLRequest();
     $req->setSuccessPath('http://foo/bar');
@@ -250,8 +293,9 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
     $this->apiProxyMock->expectCall('blobstore', 'CreateUploadURL', $req,
         $exception);
 
-    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar',
-        ['gs_bucket_name' => 'some_bucket',]);
+    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar', [
+      'gs_bucket_name' => 'some_bucket',
+    ]);
     $this->apiProxyMock->verify();
   }
 
@@ -270,8 +314,9 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
     $this->apiProxyMock->expectCall('blobstore', 'CreateUploadURL', $req,
         $exception);
 
-    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar',
-        ['gs_bucket_name' => 'some_bucket',]);
+    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar', [
+      'gs_bucket_name' => 'some_bucket',
+    ]);
     $this->apiProxyMock->verify();
   }
 
@@ -289,17 +334,18 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
     $this->apiProxyMock->expectCall('blobstore', 'CreateUploadURL', $req,
         $exception);
 
-    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar',
-        ['gs_bucket_name' => 'some_bucket',]);
+    $upload_url = CloudStorageTools::createUploadUrl('http://foo/bar', [
+      'gs_bucket_name' => 'some_bucket',
+    ]);
     $this->apiProxyMock->verify();
   }
 
   public function testNoDefaultBucketException() {
-    $req = new \google\appengine\files\GetDefaultGsBucketNameRequest();
-    $resp = new \google\appengine\files\GetDefaultGsBucketNameResponse();
+    $req = new \google\appengine\GetDefaultGcsBucketNameRequest();
+    $resp = new \google\appengine\GetDefaultGcsBucketNameResponse();
 
-    $this->apiProxyMock->expectCall("file",
-                                    "GetDefaultGsBucketName",
+    $this->apiProxyMock->expectCall("app_identity_service",
+                                    "GetDefaultGcsBucketName",
                                     $req,
                                     $resp);
     $this->setExpectedException('\InvalidArgumentException');
@@ -410,13 +456,13 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
   }
 
   public function testGetDefaultBucketNameSuccess() {
-    $req = new \google\appengine\files\GetDefaultGsBucketNameRequest();
-    $resp = new \google\appengine\files\GetDefaultGsBucketNameResponse();
+    $req = new \google\appengine\GetDefaultGcsBucketNameRequest();
+    $resp = new \google\appengine\GetDefaultGcsBucketNameResponse();
 
-    $resp->setDefaultGsBucketName("some_bucket");
+    $resp->setDefaultGcsBucketName("some_bucket");
 
-    $this->apiProxyMock->expectCall("file",
-                                    "GetDefaultGsBucketName",
+    $this->apiProxyMock->expectCall("app_identity_service",
+                                    "GetDefaultGcsBucketName",
                                     $req,
                                     $resp);
 
@@ -426,11 +472,11 @@ class CloudStorageToolsTest extends ApiProxyTestBase {
   }
 
   public function testGetDefaultBucketNameNotSet() {
-    $req = new \google\appengine\files\GetDefaultGsBucketNameRequest();
-    $resp = new \google\appengine\files\GetDefaultGsBucketNameResponse();
+    $req = new \google\appengine\GetDefaultGcsBucketNameRequest();
+    $resp = new \google\appengine\GetDefaultGcsBucketNameResponse();
 
-    $this->apiProxyMock->expectCall("file",
-                                    "GetDefaultGsBucketName",
+    $this->apiProxyMock->expectCall("app_identity_service",
+                                    "GetDefaultGcsBucketName",
                                     $req,
                                     $resp);
 

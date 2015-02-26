@@ -69,6 +69,10 @@ abstract class CloudStorageClient {
   // failure.
   const DEFAULT_MAXIMUM_NUMBER_OF_RETRIES = 2;
 
+  // URLFetch timeout to Cloud Storage - 30 seconds matches the expected timeout
+  // on the Cloud Storage Side.
+  const DEFAULT_CONNECTION_TIMEOUT_SECONDS = 30;
+
   // The default time the writable state of a bucket will be cached for.
   const DEFAULT_WRITABLE_CACHE_EXPIRY_SECONDS = 600;  // ten minutes
 
@@ -136,6 +140,18 @@ abstract class CloudStorageClient {
   const MEMCACHE_KEY_FORMAT = "_ah_gs_read_cache_%s_%s";
 
   /**
+   * Memcache key format for caching the results of reads from GCS. If the key
+   * generated using the filename and range is longer than the maximum allowed
+   * memcache key we hash down the value and use this format instead.
+   */
+  const MEMCACHE_KEY_HASH_FORMAT = "_ah_gs_read_hash_%s";
+
+  /**
+   * The maximum length of a memcache key.
+   */
+  const MEMCACHE_KEY_MAX_LENGTH = 250;
+
+  /**
    * Memcache key format for caching the results of checking if a bucket is
    * writable. The only way to check if an app can write to a bucket is by
    * actually writing a file. As the ACL on a bucket is unlikely to change
@@ -191,6 +207,7 @@ abstract class CloudStorageClient {
       "read_cache_expiry_seconds" => self::DEFAULT_READ_CACHE_EXPIRY_SECONDS,
       "writable_cache_expiry_seconds" =>
           self::DEFAULT_WRITABLE_CACHE_EXPIRY_SECONDS,
+      "connection_timeout_seconds" => self::DEFAULT_CONNECTION_TIMEOUT_SECONDS,
   ];
 
   protected $bucket_name;  // Name of the bucket for this object.
@@ -397,10 +414,13 @@ abstract class CloudStorageClient {
    *
    */
   private function doHttpRequest($url, $method, $headers, $body) {
+    $connection_timeout = $this->context_options['connection_timeout_seconds'];
     $req = new \google\appengine\URLFetchRequest();
     $req->setUrl($url);
     $req->setMethod(self::$request_map[$method]);
     $req->setMustValidateServerCertificate(true);
+    $req->setDeadline($connection_timeout);
+    $req->setFollowRedirects(false);
     if (isset($body)) {
       $req->setPayload($body);
     }
@@ -415,7 +435,11 @@ abstract class CloudStorageClient {
 
     for ($num_retries = 0; ; $num_retries++) {
       try {
-        ApiProxy::makeSyncCall('urlfetch', 'Fetch', $req, $resp);
+        ApiProxy::makeSyncCall('urlfetch',
+                               'Fetch',
+                               $req,
+                               $resp,
+                               $connection_timeout);
       } catch (ApplicationError $e) {
         if (in_array($e->getApplicationError(), self::$retry_exception_codes)) {
           // We need to set a plausible value in the URLFetchResponse proto in
@@ -563,6 +587,28 @@ abstract class CloudStorageClient {
                      $msg_prefix,
                      HttpResponse::getStatusMessage($http_status_code));
     }
+  }
+
+  /**
+   * Create a memcache key for the read data cache. If the filename is long
+   * enough that the key would exceed memcache limits, then a hash of the
+   * filename and the range is used to generate the key.
+   *
+   * We prefer the human readable key format where possible so users can easily
+   * identify which files and segments are stored in memcache.
+   *
+   * @param string $url The url of the file that contains the data being cached.
+   * @param string $range The range oheader f the data being cached.
+   *
+   * @return string The memcache key to use for storing data.
+   */
+  public static function getReadMemcacheKey($url, $range) {
+    $key = sprintf(self::MEMCACHE_KEY_FORMAT, $url, $range);
+    if (strlen($key) > self::MEMCACHE_KEY_MAX_LENGTH) {
+      $hash = hash("ripemd256", $key);
+      $key = sprintf(self::MEMCACHE_KEY_HASH_FORMAT, $hash);
+    }
+    return $key;
   }
 
 }

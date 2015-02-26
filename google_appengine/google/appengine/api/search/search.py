@@ -1639,9 +1639,11 @@ class Document(object):
   Document(doc_id='document_id',
            fields=[TextField(name='subject', value='going for dinner'),
                    HtmlField(name='body',
-                             value='<html>I found a place.</html>',
+                             value='<html>I found a place.</html>'),
                    TextField(name='signature', value='brzydka pogoda',
                              language='pl')],
+           facets=[AtomFacet(name='tag', value='food'),
+                   NumberFacet(name='priority', value=5.0)],
            language='en')
   """
   _FIRST_JAN_2011 = datetime.datetime(2011, 1, 1)

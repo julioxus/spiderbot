@@ -228,40 +228,40 @@ class Dispatcher(request_info.Dispatcher):
         module_configuration.module_name)
     threadsafe_override = self._module_to_threadsafe_override.get(
         module_configuration.module_name)
-    module_args = (module_configuration,
-                   self._host,
-                   port,
-                   self._api_host,
-                   self._api_port,
-                   self._auth_domain,
-                   self._runtime_stderr_loglevel,
-                   self._php_config,
-                   self._python_config,
-                   self._java_config,
-                   self._cloud_sql_config,
-                   self._vm_config,
-                   self._port,
-                   self._port_registry,
-                   self._request_data,
-                   self,
-                   max_instances,
-                   self._use_mtime_file_watcher,
-                   self._automatic_restart,
-                   self._allow_skipped_files,
-                   threadsafe_override)
 
     # TODO: Remove this 'or' statement when we support auto-scaled VMs.
     if (module_configuration.manual_scaling or
         module_configuration.runtime == 'vm'):
-      _module = module.ManualScalingModule(*module_args)
+      module_class = module.ManualScalingModule
     elif module_configuration.basic_scaling:
-      _module = module.BasicScalingModule(*module_args)
+      module_class = module.BasicScalingModule
     else:
-      _module = module.AutoScalingModule(*module_args)
+      module_class = module.AutoScalingModule
 
-    if port != 0:
-      port += 1
-    return _module, port
+    module_instance = module_class(
+        module_configuration=module_configuration,
+        host=self._host,
+        balanced_port=port,
+        api_host=self._api_host,
+        api_port=self._api_port,
+        auth_domain=self._auth_domain,
+        runtime_stderr_loglevel=self._runtime_stderr_loglevel,
+        php_config=self._php_config,
+        python_config=self._python_config,
+        java_config=self._java_config,
+        cloud_sql_config=self._cloud_sql_config,
+        vm_config=self._vm_config,
+        default_version_port=self._port,
+        port_registry=self._port_registry,
+        request_data=self._request_data,
+        dispatcher=self,
+        max_instances=max_instances,
+        use_mtime_file_watcher=self._use_mtime_file_watcher,
+        automatic_restarts=self._automatic_restart,
+        allow_skipped_files=self._allow_skipped_files,
+        threadsafe_override=threadsafe_override)
+
+    return module_instance, (0 if port == 0 else port + 1)
 
   @property
   def modules(self):

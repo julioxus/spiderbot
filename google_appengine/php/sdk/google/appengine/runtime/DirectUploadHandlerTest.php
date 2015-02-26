@@ -16,7 +16,14 @@
  */
 namespace google\appengine\runtime;
 
+use org\bovigo\vfs\vfsStream;
+
 class DirectUploadHandlerTest extends \PHPUnit_Framework_TestCase {
+  public static function setUpBeforeClass() {
+    // Initialize VFS like Setup.php.
+    vfsStream::setup('root', null, ['uploads' => []]);
+  }
+
   public function testHandler() {
     // Add file entries that mimics what the modified php runtime provides.
     $_FILES = [
@@ -25,7 +32,7 @@ class DirectUploadHandlerTest extends \PHPUnit_Framework_TestCase {
         'name' => 'test1.txt',
         'type' => 'text/plain',
         'contents' => 'Hello world',
-        'tmp_name' => 'vfs://uploads/0',
+        'tmp_name' => 'vfs://root/uploads/0',
         'error' => UPLOAD_ERR_OK,
         'size' => 11, // strlen('hello world')
       ],
@@ -34,7 +41,7 @@ class DirectUploadHandlerTest extends \PHPUnit_Framework_TestCase {
         'name' => 'test2.txt',
         'type' => 'text/plain',
         'contents' => '',
-        'tmp_name' => 'vfs://uploads/1',
+        'tmp_name' => 'vfs://root/uploads/1',
         'error' => UPLOAD_ERR_INI_SIZE,
         'size' => 0,
       ],
@@ -47,21 +54,22 @@ class DirectUploadHandlerTest extends \PHPUnit_Framework_TestCase {
       'file1' => [
         'name' => 'test1.txt',
         'type' => 'text/plain',
-        'tmp_name' => 'vfs://uploads/0',
+        'tmp_name' => 'vfs://root/uploads/0',
         'error' => UPLOAD_ERR_OK,
         'size' => 11,
       ],
       'file2' => [
         'name' => 'test2.txt',
         'type' => 'text/plain',
-        'tmp_name' => 'vfs://uploads/1',
+        'tmp_name' => 'vfs://root/uploads/1',
         'error' => UPLOAD_ERR_INI_SIZE,
         'size' => 0,
       ],
     ], $_FILES);
 
     // Ensure contents was moved into vfs:// stream where applicable.
-    $this->assertEquals('Hello world', file_get_contents('vfs://uploads/0'));
-    $this->assertFalse(file_exists('vfs://uploads/1'));
+    $this->assertEquals('Hello world',
+                        file_get_contents('vfs://root/uploads/0'));
+    $this->assertFalse(file_exists('vfs://root/uploads/1'));
   }
 }

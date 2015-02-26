@@ -1214,7 +1214,7 @@ namespace google\appengine_datastore_v3 {
     }
     public function getPersistOffset() {
       if (!isset($this->persist_offset)) {
-        return false;
+        return true;
       }
       return $this->persist_offset;
     }

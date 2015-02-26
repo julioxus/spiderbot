@@ -21,12 +21,26 @@
 
 namespace google\appengine\api\log;
 
+use google\appengine\base\VoidProto;
+use google\appengine\FlushRequest;
 use google\appengine\LogOffset;
 use google\appengine\LogReadRequest;
 use google\appengine\LogReadResponse;
 use google\appengine\LogServiceError\ErrorCode;
 use google\appengine\runtime\ApplicationError;
 use google\appengine\testing\ApiProxyTestBase;
+use google\appengine\UserAppLogGroup;
+
+$mockTime = 12345.6;
+
+// This mocks out PHP's microtime() function.
+function microtime($get_as_float = false) {
+  if (!$get_as_float) {
+    die('microtime called with get_as_float=false');
+  }
+  global $mockTime;
+  return $mockTime;
+}
 
 class LogServiceTest extends ApiProxyTestBase {
 
@@ -36,6 +50,7 @@ class LogServiceTest extends ApiProxyTestBase {
 
   const RPC_PACKAGE = 'logservice';
   const RPC_READ_METHOD = 'Read';
+  const RPC_FLUSH_METHOD = 'Flush';
   const DEFAULT_BATCH_SIZE = 20;
 
   public function setUp() {
@@ -581,9 +596,184 @@ class LogServiceTest extends ApiProxyTestBase {
     $iterator->next();
   }
 
-  public function testGetAppEngineLogLevel() {
-    $this->assertEquals(0, LogService::getAppEngineLogLevel(LOG_DEBUG));
-    $this->assertEquals(LogService::LEVEL_CRITICAL,
-                        LogService::getAppEngineLogLevel(LOG_EMERG));
+  /**
+   * @dataProvider logLevelMappings
+   */
+  public function testGetAppEngineLogLevel($syslog_level, $gae_level) {
+    $this->assertEquals($gae_level,
+        LogService::getAppEngineLogLevel($syslog_level));
+  }
+
+  public function logLevelMappings() {
+    return [[LOG_EMERG, 4],
+            [LOG_ALERT, 4],
+            [LOG_CRIT, 4],
+            [LOG_ERR, 3],
+            [LOG_WARNING, 2],
+            [LOG_NOTICE, 1],
+            [LOG_INFO, 1],
+            [LOG_DEBUG, 0]];
+  }
+
+  public function testNonIntegerLogLevel() {
+    $this->setExpectedException('InvalidArgumentException');
+    LogService::log('not_an_integer', 'message');
+  }
+
+  public function testLogLevelTooLow() {
+    $this->setExpectedException('InvalidArgumentException');
+    LogService::log(LogService::LEVEL_DEBUG - 1, 'message');
+  }
+
+  public function testLogLevelTooHigh() {
+    $this->setExpectedException('InvalidArgumentException');
+    LogService::log(LogService::LEVEL_CRITICAL + 1, 'message');
+  }
+
+  public function testNonStringLogMessage() {
+    $this->setExpectedException('InvalidArgumentException');
+    $non_string = 123;
+    LogService::log(LogService::LEVEL_DEBUG, $non_string);
+  }
+
+  public function testManualFlush() {
+    global $mockTime;
+    $mockTime = 10;
+
+    LogService::setAutoFlushEntries(100);
+    LogService::setAutoFlushBytes(512 * 1024);
+    LogService::setLogFlushTimeLimit(0);
+    LogService::log(1, 'test message');
+
+    $request = new FlushRequest();
+    $app_log_group = new UserAppLogGroup();
+    $this->addLogLine($app_log_group, 1, 10, 'test message');
+    $request->setLogs($app_log_group->serializeToString());
+
+    $response = new VoidProto();
+
+    $this->apiProxyMock->expectCall(self::RPC_PACKAGE,
+                                    self::RPC_FLUSH_METHOD,
+                                    $request,
+                                    $response);
+
+    LogService::flush();
+  }
+
+  public function testAutoFlushByEntries() {
+    global $mockTime;
+
+    LogService::setAutoFlushEntries(2);
+    LogService::setAutoFlushBytes(512 * 1024);
+    LogService::setLogFlushTimeLimit(0);
+    $request = new FlushRequest();
+    $app_log_group = new UserAppLogGroup();
+    $this->addLogLine($app_log_group, 0, 10, 'message 1');
+    $this->addLogLine($app_log_group, 1, 20, 'message 2');
+    $this->addLogLine($app_log_group, 2, 30, 'message 3');
+    $request->setLogs($app_log_group->serializeToString());
+
+    $response = new VoidProto();
+
+    $this->apiProxyMock->expectCall(self::RPC_PACKAGE,
+                                    self::RPC_FLUSH_METHOD,
+                                    $request,
+                                    $response);
+
+    $mockTime = 10;
+    LogService::log(0, 'message 1');
+    $mockTime = 20;
+    LogService::log(1, 'message 2');
+    $mockTime = 30;
+    LogService::log(2, 'message 3');
+  }
+
+  public function testAutoFlushByBytes() {
+    global $mockTime;
+
+    LogService::setAutoFlushEntries(100);
+    LogService::setAutoFlushBytes(1024);
+    LogService::setLogFlushTimeLimit(0);
+
+    $long_message = str_repeat('a', 1024);
+
+    $request = new FlushRequest();
+    $app_log_group = new UserAppLogGroup();
+    $this->addLogLine($app_log_group, 0, 10, 'message 1');
+    $this->addLogLine($app_log_group, 0, 20, $long_message);
+    $request->setLogs($app_log_group->serializeToString());
+
+    $response = new VoidProto();
+
+    $this->apiProxyMock->expectCall(self::RPC_PACKAGE,
+                                    self::RPC_FLUSH_METHOD,
+                                    $request,
+                                    $response);
+
+    $mockTime = 10;
+    LogService::log(0, 'message 1');
+    $mockTime = 20;
+    LogService::log(0, $long_message);
+  }
+
+  public function testAutoFlushByTimeLimit() {
+    global $mockTime;
+
+    LogService::setAutoFlushEntries(100);
+    LogService::setAutoFlushBytes(512 * 1024);
+    LogService::setLogFlushTimeLimit(0);
+
+    $this->resetLastFlushTime(10);
+
+    $request = new FlushRequest();
+    $app_log_group = new UserAppLogGroup();
+    $this->addLogLine($app_log_group, 1, 10, 'message 2');
+    $this->addLogLine($app_log_group, 2, 20, 'message 3');
+    $request->setLogs($app_log_group->serializeToString());
+
+    $response = new VoidProto();
+
+    $this->apiProxyMock->expectCall(self::RPC_PACKAGE,
+                                    self::RPC_FLUSH_METHOD,
+                                    $request,
+                                    $response);
+
+    $mockTime = 10;
+    LogService::log(1, 'message 2');
+
+    $mockTime = 20;
+    LogService::setLogFlushTimeLimit(9);
+    LogService::log(2, 'message 3');
+  }
+
+  private function addLogLine($app_log_group, $severity, $usec, $message) {
+    $app_log_line = $app_log_group->addLogLine();
+    $timestamp = intval($usec * 1e6);
+    $app_log_line->setTimestampUsec($timestamp);
+    $app_log_line->setLevel($severity);
+    $app_log_line->setMessage($message);
+  }
+
+  private function resetLastFlushTime($new_time) {
+    global $mockTime;
+
+    $old_mock_time = $mockTime;
+    $mockTime = $new_time;
+
+    // Given that LogService::$last_flush_time is private, the only way to
+    // reset it is by manually flushing the logs once.
+    LogService::log(0, 'message 1');
+    $request = new FlushRequest();
+    $app_log_group = new UserAppLogGroup();
+    $this->addLogLine($app_log_group, 0, 10, 'message 1');
+    $request->setLogs($app_log_group->serializeToString());
+    $response = new VoidProto();
+    $this->apiProxyMock->expectCall(self::RPC_PACKAGE,
+                                    self::RPC_FLUSH_METHOD,
+                                    $request,
+                                    $response);
+    LogService::flush();
+
+    $mockTime = $old_mock_time;
   }
 }
