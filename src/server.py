@@ -11,6 +11,7 @@ import urllib
 import urllib2
 import time
 import json
+import feedparser
 
 # Declaración del entorno de jinja2 y el sistema de templates.
 
@@ -19,6 +20,7 @@ JINJA_ENVIRONMENT = jinja2.Environment(
     extensions=['jinja2.ext.autoescape'],
     autoescape=True)
 
+# REST APIs for validation
 html_validator_url = 'http://validator.w3.org/check'
 css_validator_url = 'http://jigsaw.w3.org/css-validator/validator'
 wcag_validator_url = 'http://achecker.ca/checkacc.php'
