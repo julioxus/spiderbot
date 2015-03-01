@@ -12,6 +12,7 @@ import urllib2
 import time
 import json
 import feedparser
+from lxml import etree
 
 # Declaración del entorno de jinja2 y el sistema de templates.
 
@@ -56,15 +57,20 @@ def validate(filename):
         return ''
     
 def validateWCAG(filename):
-    urlfetch.set_default_fetch_deadline(45)
-    code =  checkAvailability(filename)
+    urlfetch.set_default_fetch_deadline(60)
+    code = checkAvailability(filename)
     if code >= 200 and code < 300:
         payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'rest'}
         encoded_args = urllib.urlencode(payload)
-        url = wcag_validator_url + '/?' + encoded_args
+        url = wcag_validator_url + '/?' + encoded_args 
+        print url
         r = urllib2.urlopen(url)
         result = r.read()
-        return result;
+        result = result.replace('ISO-8859-1','UTF-8')
+        
+        tree = etree.fromstring(result)
+        status = tree.xpath('status')
+        return status
     else:
         return ''
     
@@ -169,15 +175,15 @@ class Validation(webapp2.RequestHandler):
                 self.response.write('Error: Invalid URL')
                 
         elif option == 'val_wcag':
-            try:
-                result = validateWCAG(f)
-                if result:
-                    self.response.write(result)
-                else:
-                    self.response.write("Error: Invalid URL. URL must start with http:// or https://")
-            except:
-                self.response.write("Error: Deadline exceeded while waiting for HTTP response")
-                return None
+            #try:
+            result = validateWCAG(f)
+            if result:
+                self.response.write(result)
+            else:
+                self.response.write("Error: Invalid URL. URL must start with http:// or https://")
+            #except:
+            #    self.response.write("Error: Deadline exceeded while waiting for HTTP response")
+            #    return None
         
         
 urls = [('/',MainPage),
