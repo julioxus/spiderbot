@@ -6,6 +6,7 @@ import jinja2
 import os
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import ndb
+from google.appengine.api import urlfetch
 import urllib
 import urllib2
 import time
@@ -20,6 +21,8 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 
 html_validator_url = 'http://validator.w3.org/check'
 css_validator_url = 'http://jigsaw.w3.org/css-validator/validator'
+wcag_validator_url = 'http://achecker.ca/checkacc.php'
+ACHECKER_ID = '8d50ba76d166da61bdc9dfa3c97247b32dd1014c'
 
 
 def validate(filename):
@@ -49,6 +52,34 @@ def validate(filename):
         return result
     else:
         return ''
+    
+def validateWCAG(filename):
+    urlfetch.set_default_fetch_deadline(45)
+    code =  checkAvailability(filename)
+    if code >= 200 and code < 300:
+        payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'rest'}
+        encoded_args = urllib.urlencode(payload)
+        url = wcag_validator_url + '/?' + encoded_args
+        r = urllib2.urlopen(url)
+        result = r.read()
+        return result;
+    else:
+        return ''
+    
+def checkAvailability(filename):
+    try:
+        response = urllib2.urlopen(filename)
+        code = response.getcode()
+        
+        response.close()
+        return code
+        
+    except urllib2.HTTPError, e:
+        code =  e.getcode()
+        return code
+        
+    except:
+        return -1    
 
 class MainPage(webapp2.RequestHandler):
     
@@ -127,22 +158,24 @@ class Validation(webapp2.RequestHandler):
                 self.response.write(out.replace("\n", "<br />"))
                 
         elif option == 'check_availability':
-            
-            try:
-                response = urllib2.urlopen(f)
-                code = response.getcode()
-                self.response.write(code)
-                self.response.write('<br/>Request OK')
-                
-                response.close()
-                
-            except urllib2.HTTPError, e:
-                code =  e.getcode()
-                self.response.write(code)
-                self.response.write('<br/>Request FAILED')
-                
-            except:
+            code = checkAvailability(f)
+            if code >= 200 and code < 300:
+                self.response.write(str(code) + '<br/>Request OK')
+            elif code != -1:
+                self.response.write(str(code) + '<br/>Request FAILED')
+            else:
                 self.response.write('Error: Invalid URL')
+                
+        elif option == 'val_wcag':
+            try:
+                result = validateWCAG(f)
+                if result:
+                    self.response.write(result)
+                else:
+                    self.response.write("Error: Invalid URL. URL must start with http:// or https://")
+            except:
+                self.response.write("Error: Deadline exceeded while waiting for HTTP response")
+                return None
         
         
 urls = [('/',MainPage),
