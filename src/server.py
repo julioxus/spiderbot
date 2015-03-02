@@ -11,6 +11,7 @@ import urllib
 import urllib2
 import time
 import json
+import re
 
 # Declaración del entorno de jinja2 y el sistema de templates.
 
@@ -83,7 +84,35 @@ def checkAvailability(filename):
         return code
         
     except:
-        return -1    
+        return -1
+    
+# Get all HTML pages from a root url given a depth scan level
+def getAllLinksRec(root,depth):
+    
+    links = []
+    links.append(str(root))
+    i = 0
+    
+    while(len(links) < depth):
+        
+        #connect to a URL
+        website = urllib2.urlopen(links[i])
+        
+        #read html code
+        html = website.read()
+        
+        #use re.findall to get all the links
+        aux = re.findall('"((http|ftp)s?://.*?)"', html)
+        aux2 = []
+        
+        for item in aux:
+            aux2.append(item[0])
+            
+        links.extend(aux2)
+        
+        i+=1
+    
+    return links
 
 class MainPage(webapp2.RequestHandler):
     
@@ -104,13 +133,17 @@ class login(webapp2.RequestHandler):
 class Validation(webapp2.RequestHandler):
     def post(self):
         
+        
         out = ""
         
         try:
             f = self.request.get('url')
+            links = getAllLinksRec(f, 100)
         except urllib2.HTTPError, e:
             self.response.write('Error: ' + e)
             return None
+        
+        print links
         
         option = self.request.get('optradio')
         
