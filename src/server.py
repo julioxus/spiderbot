@@ -11,7 +11,6 @@ import urllib
 import urllib2
 import time
 import json
-import feedparser
 from lxml import etree
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -38,6 +37,7 @@ def validate(filename):
     
     if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
+        urlfetch.set_default_fetch_deadline(60)
         if filename.endswith('.css'):
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
@@ -55,22 +55,27 @@ def validate(filename):
         return result
     else:
         return ''
+
+##
+# Removes HTML or XML character references and entities from a text string.
+#
+# @param text The HTML (or XML) source text.
+# @return The plain text, as a Unicode string, if necessary.
+
     
 def validateWCAG(filename):
     urlfetch.set_default_fetch_deadline(60)
     code = checkAvailability(filename)
     if code >= 200 and code < 300:
-        payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'rest'}
+        payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'html'}
         encoded_args = urllib.urlencode(payload)
         url = wcag_validator_url + '/?' + encoded_args 
         print url
         r = urllib2.urlopen(url)
         result = r.read()
-        result = result.replace('ISO-8859-1','UTF-8')
-        
-        tree = etree.fromstring(result)
-        status = tree.xpath('status')
-        return status
+        #tree = etree.fromstring(result)
+        #status = tree.xpath('status')
+        return result
     else:
         return ''
     
