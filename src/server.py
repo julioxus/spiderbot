@@ -171,15 +171,15 @@ class Validation(webapp2.RequestHandler):
                 self.response.write('Error: Invalid URL')
                 
         elif option == 'val_wcag':
-            #try:
-            result = validateWCAG(f)
-            if result:
-                self.response.write(result)
-            else:
-                self.response.write("Error: Invalid URL. URL must start with http:// or https://")
-            #except:
-            #    self.response.write("Error: Deadline exceeded while waiting for HTTP response")
-            #    return None
+            try:
+                result = validateWCAG(f)
+                if result:
+                    self.response.write(result)
+                else:
+                    self.response.write("Error: Invalid URL. URL must start with http:// or https://")
+            except:
+                self.response.write("Error: Deadline exceeded while waiting for HTTP response")
+                return None
         
         
 urls = [('/',MainPage),
