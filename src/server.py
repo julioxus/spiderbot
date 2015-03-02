@@ -11,7 +11,6 @@ import urllib
 import urllib2
 import time
 import json
-from lxml import etree
 
 # Declaración del entorno de jinja2 y el sistema de templates.
 
@@ -56,12 +55,6 @@ def validate(filename):
     else:
         return ''
 
-##
-# Removes HTML or XML character references and entities from a text string.
-#
-# @param text The HTML (or XML) source text.
-# @return The plain text, as a Unicode string, if necessary.
-
     
 def validateWCAG(filename):
     urlfetch.set_default_fetch_deadline(60)
@@ -73,8 +66,6 @@ def validateWCAG(filename):
         print url
         r = urllib2.urlopen(url)
         result = r.read()
-        #tree = etree.fromstring(result)
-        #status = tree.xpath('status')
         return result
     else:
         return ''
