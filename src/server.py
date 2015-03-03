@@ -7,6 +7,7 @@ import os
 from google.appengine.ext.webapp.util import run_wsgi_app
 from google.appengine.ext import ndb
 from google.appengine.api import urlfetch
+from google.appengine.api import taskqueue
 import urllib
 import urllib2
 import time
@@ -138,101 +139,108 @@ class Report(ndb.model):
     type = ndb.StringProperty()
     content = ndb.StringProperty()
     
+    
+class QueueValidation(webapp2.RequestHandler):
+    def post(self):
+        
+        root = self.request.get('url')
+        links = getAllLinksRec(root, 5)
+        root = self.request.get('url')
+        
+        for link in links:
+             # Add the task to the default queue.
+            taskqueue.add(url='/validation', params={'url': link})
         
 class Validation(webapp2.RequestHandler):
     def post(self):
         
         try:
-            root = self.request.get('url')
-            links = getAllLinksRec(root, 5)
+            f = self.request.get('url')
         except urllib2.HTTPError, e:
             self.response.write('Error: ' + e)
             return None
         
         option = self.request.get('optradio')
         
-        print links
         
         if option == 'val_html':
-            for f in links:
-                out = ''
-                errors = 0
-                warnings = 0
-        
-                out += "validating: %s ...\n" % f
-                result = ''
-                try:
-                    result = validate(f)
-                except:
-                    self.response.write("Error: Invalid URL")
-                    return None
+            out = ''
+            errors = 0
+            warnings = 0
+    
+            out += "validating: %s ...\n" % f
+            result = ''
+            try:
+                result = validate(f)
+            except:
+                self.response.write("Error: Invalid URL")
+                return None
+            
+            if result == '':
+                out += 'Error: Invalid URL. URL must start with http:// or https://'
+                     
+            try:
+                if f.endswith('.css'):
+                    errorcount = result['cssvalidation']['result']['errorcount']
+                    warningcount = result['cssvalidation']['result']['warningcount']
+                    
+                    for msg in result['cssvalidation']['errors']:
+                        out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
+                    
+                    for msg in result['cssvalidation']['warnings']:
+                        out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
+                    
+                    errors += errorcount
+                    warnings += warningcount
+                else:
+                    for msg in result['messages']:
+                        if 'lastLine' in msg:
+                            out += "%(type)s: line %(lastLine)d: %(message)s \n" % msg
+                        else:
+                            out += "%(type)s: %(message)s \n" % msg
+                        if msg['type'] == 'error':
+                            errors += 1
+                        else:
+                            warnings += 1
                 
-                if result == '':
-                    out += 'Error: Invalid URL. URL must start with http:// or https://'
-                         
-                try:
-                    if f.endswith('.css'):
-                        errorcount = result['cssvalidation']['result']['errorcount']
-                        warningcount = result['cssvalidation']['result']['warningcount']
-                        
-                        for msg in result['cssvalidation']['errors']:
-                            out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
-                        
-                        for msg in result['cssvalidation']['warnings']:
-                            out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
-                        
-                        errors += errorcount
-                        warnings += warningcount
-                    else:
-                        for msg in result['messages']:
-                            if 'lastLine' in msg:
-                                out += "%(type)s: line %(lastLine)d: %(message)s \n" % msg
-                            else:
-                                out += "%(type)s: %(message)s \n" % msg
-                            if msg['type'] == 'error':
-                                errors += 1
-                            else:
-                                warnings += 1
-                    
-                    out += "\nErrors: %s \n" % errors
-                    out += "Warnings: %s" % warnings
-                    
-                    self.response.write(out.replace("\n", "<br />"))
-                    
-                except:
-                    self.response.write(out.replace("\n", "<br />"))
+                out += "\nErrors: %s \n" % errors
+                out += "Warnings: %s" % warnings
                 
-                self.response.write('<br/><br/>')
+                self.response.write(out.replace("\n", "<br />"))
+                
+            except:
+                self.response.write(out.replace("\n", "<br />"))
+            
+            self.response.write('<br/><br/>')
                 
         elif option == 'check_availability':
-            for f in links:
-                code = checkAvailability(f)
-                if code >= 200 and code < 300:
-                    self.response.write(str(code) + '<br/>Request OK')
-                elif code != -1:
-                    self.response.write(str(code) + '<br/>Request FAILED')
-                else:
-                    self.response.write('Error: Invalid URL')
-                
-                self.response.write('<br/><br/>')
+            code = checkAvailability(f)
+            if code >= 200 and code < 300:
+                self.response.write(str(code) + '<br/>Request OK')
+            elif code != -1:
+                self.response.write(str(code) + '<br/>Request FAILED')
+            else:
+                self.response.write('Error: Invalid URL')
+            
+            self.response.write('<br/><br/>')
                 
         elif option == 'val_wcag':
-            for f in links:
-                try:
-                    result = validateWCAG(f)
-                    if result:
-                        self.response.write(result)
-                    else:
-                        self.response.write("Error: Invalid URL. URL must start with http:// or https://")
-                except:
-                    self.response.write("Error: Deadline exceeded while waiting for HTTP response")
-                    return None
-                
-                self.response.write('<br/><br/>')
+            try:
+                result = validateWCAG(f)
+                if result:
+                    self.response.write(result)
+                else:
+                    self.response.write("Error: Invalid URL. URL must start with http:// or https://")
+            except:
+                self.response.write("Error: Deadline exceeded while waiting for HTTP response")
+                return None
+            
+            self.response.write('<br/><br/>')
         
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
+        ('/qvalidation',QueueValidation),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
