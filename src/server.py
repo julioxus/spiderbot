@@ -93,7 +93,7 @@ def getAllLinksRec(root,depth):
     links.append(str(root))
     i = 0
     
-    while(len(links) < depth):
+    while len(links) < depth:
         
         #connect to a URL
         website = urllib2.urlopen(links[i])
@@ -109,6 +109,9 @@ def getAllLinksRec(root,depth):
             aux2.append(item[0])
             
         links.extend(aux2)
+        
+        while len(links) > depth:
+            links.pop()
         
         i+=1
     
@@ -144,9 +147,11 @@ class Validation(webapp2.RequestHandler):
         
         option = self.request.get('optradio')
         
+        print links
         
         if option == 'val_html':
             for f in links:
+                out = ''
                 errors = 0
                 warnings = 0
         
