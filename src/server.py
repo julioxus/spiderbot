@@ -198,6 +198,8 @@ class Validation(webapp2.RequestHandler):
                 except:
                     self.response.write(out.replace("\n", "<br />"))
                 
+                self.response.write('<br/><br/>')
+                
         elif option == 'check_availability':
             for f in links:
                 code = checkAvailability(f)
@@ -207,6 +209,8 @@ class Validation(webapp2.RequestHandler):
                     self.response.write(str(code) + '<br/>Request FAILED')
                 else:
                     self.response.write('Error: Invalid URL')
+                
+                self.response.write('<br/><br/>')
                 
         elif option == 'val_wcag':
             for f in links:
@@ -219,7 +223,8 @@ class Validation(webapp2.RequestHandler):
                 except:
                     self.response.write("Error: Deadline exceeded while waiting for HTTP response")
                     return None
-        
+                
+                self.response.write('<br/><br/>')
         
 urls = [('/',MainPage),
         ('/login',login),
