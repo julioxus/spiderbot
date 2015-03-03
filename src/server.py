@@ -133,10 +133,14 @@ class login(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('template/login.html')
         self.response.write(template.render(template_values))
         
+class Report(ndb.model):
+    url = ndb.StringProperty()
+    type = ndb.StringProperty()
+    content = ndb.StringProperty()
+    
+        
 class Validation(webapp2.RequestHandler):
     def post(self):
-        
-        out = ""
         
         try:
             root = self.request.get('url')
