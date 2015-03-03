@@ -19,9 +19,9 @@ La aplicación realizará las siguientes tareas:
 * [X] Validar documentos conforme a la normativa WCAG 2.0
 * [X] Comprobar disponibilidad de las URLS de un sitio web completo
 * [X] Elegir nivel de recursividad para el escaneo de una dirección web
-* [] Realizar informe de los análisis
-* [] Programar escaneo automatizado de una web completa
-* [] Registro y seguimiento de usuarios que podrán programar sus propios escaneos automatizados
-* [] Avisos de fallo en la web por correo electrónico
+* [ ] Realizar informe de los análisis
+* [ ] Programar escaneo automatizado de una web completa
+* [ ] Registro y seguimiento de usuarios que podrán programar sus propios escaneos automatizados
+* [ ] Avisos de fallo en la web por correo electrónico
 
 La aplicación, además, deberá estar desplegada en un servicio cloud gratuito como Google App Engine.
