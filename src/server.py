@@ -134,7 +134,7 @@ class login(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('template/login.html')
         self.response.write(template.render(template_values))
         
-class Report(ndb.model):
+class Report(ndb.Model):
     url = ndb.StringProperty()
     type = ndb.StringProperty()
     content = ndb.StringProperty()
@@ -148,12 +148,15 @@ class QueueValidation(webapp2.RequestHandler):
         root = self.request.get('url')
         
         for link in links:
-             # Add the task to the default queue.
+            # Add the task to the default queue.
             taskqueue.add(url='/validation', params={'url': link})
         
 class Validation(webapp2.RequestHandler):
     def post(self):
+        url = self.request.get('url')
+        print url
         
+        '''
         try:
             f = self.request.get('url')
         except urllib2.HTTPError, e:
@@ -236,7 +239,7 @@ class Validation(webapp2.RequestHandler):
                 return None
             
             self.response.write('<br/><br/>')
-        
+        '''
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
