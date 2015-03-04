@@ -5,6 +5,8 @@ Spiderbot
 
 Aplicación web que valida los documentos web conforme a los formatos estándares y normativas para la accesibilidad.
 
+![logo](https://raw.githubusercontent.com/julioxus/spiderbot/master/src/static/images/logo.png)
+
 ## Versión actual de la aplicación en funcionamiento:
 
 [Spiderbot](http://spiderbot-ugr.appspot.com/)
