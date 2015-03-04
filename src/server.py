@@ -137,7 +137,7 @@ class login(webapp2.RequestHandler):
 class Report(ndb.Model):
     url = ndb.StringProperty()
     type = ndb.StringProperty()
-    content = ndb.StringProperty()
+    content = ndb.TextProperty()
     date = ndb.StringProperty()
     time = ndb.StringProperty()
     user = ndb.StringProperty()
@@ -264,6 +264,8 @@ application = webapp2.WSGIApplication(urls, debug=True)
 
 
 def main():
+    os.environ['TZ'] = 'Europe/Madrid'
+    time.tzset()
     run_wsgi_app(application)
 
 if __name__ == "__main__":
