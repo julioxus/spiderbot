@@ -138,7 +138,9 @@ class Report(ndb.Model):
     url = ndb.StringProperty()
     type = ndb.StringProperty()
     content = ndb.StringProperty()
-    
+    date = ndb.StringProperty()
+    time = ndb.StringProperty()
+    user = ndb.StringProperty()
     
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
@@ -147,24 +149,25 @@ class QueueValidation(webapp2.RequestHandler):
         links = getAllLinksRec(root, 5)
         root = self.request.get('url')
         
+        option = self.request.get('optradio')
+        
         for link in links:
             # Add the task to the default queue.
-            taskqueue.add(url='/validation', params={'url': link})
+            taskqueue.add(url='/validation', params={'url': link, 'optradio': option})
+        
+        self.redirect('/')
         
 class Validation(webapp2.RequestHandler):
     def post(self):
-        url = self.request.get('url')
-        print url
         
-        '''
+        content = ''
+        
         try:
             f = self.request.get('url')
         except urllib2.HTTPError, e:
-            self.response.write('Error: ' + e)
-            return None
+            content += 'Error: ' + e
         
         option = self.request.get('optradio')
-        
         
         if option == 'val_html':
             out = ''
@@ -176,8 +179,7 @@ class Validation(webapp2.RequestHandler):
             try:
                 result = validate(f)
             except:
-                self.response.write("Error: Invalid URL")
-                return None
+                content += "Error: Invalid URL"
             
             if result == '':
                 out += 'Error: Invalid URL. URL must start with http:// or https://'
@@ -209,37 +211,49 @@ class Validation(webapp2.RequestHandler):
                 out += "\nErrors: %s \n" % errors
                 out += "Warnings: %s" % warnings
                 
-                self.response.write(out.replace("\n", "<br />"))
+                content += out.replace("\n", "<br />")
                 
             except:
-                self.response.write(out.replace("\n", "<br />"))
+                content += out.replace("\n", "<br />")
             
-            self.response.write('<br/><br/>')
+            content += '<br/><br/>'
                 
         elif option == 'check_availability':
             code = checkAvailability(f)
             if code >= 200 and code < 300:
-                self.response.write(str(code) + '<br/>Request OK')
+                content += str(code) + '<br/>Request OK'
             elif code != -1:
-                self.response.write(str(code) + '<br/>Request FAILED')
+                content += str(code) + '<br/>Request FAILED'
             else:
-                self.response.write('Error: Invalid URL')
+                content += 'Error: Invalid URL'
             
-            self.response.write('<br/><br/>')
+            content += '<br/><br/>'
                 
         elif option == 'val_wcag':
             try:
                 result = validateWCAG(f)
                 if result:
-                    self.response.write(result)
+                    content += result
                 else:
-                    self.response.write("Error: Invalid URL. URL must start with http:// or https://")
+                    content += "Error: Invalid URL. URL must start with http:// or https://"
             except:
-                self.response.write("Error: Deadline exceeded while waiting for HTTP response")
-                return None
+                content += "Error: Deadline exceeded while waiting for HTTP response"
             
-            self.response.write('<br/><br/>')
-        '''
+            content += '<br/><br/>'
+            
+        sys_time = time.strftime("%H:%M:%S")
+        sys_date = time.strftime("%d/%m/%Y")
+        
+        report = Report()
+        
+        report.url = f
+        report.type = option
+        report.content = content
+        report.date = sys_date
+        report.time = sys_time
+        
+        report.put()
+        
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
