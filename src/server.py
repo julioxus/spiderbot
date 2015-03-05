@@ -13,6 +13,7 @@ import urllib2
 import time
 import json
 import re
+import lxml.html
 
 # Declaración del entorno de jinja2 y el sistema de templates.
 
@@ -39,7 +40,8 @@ def validate(filename):
     if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
         urlfetch.set_default_fetch_deadline(60)
-        if filename.endswith('.css'):
+        p = re.compile(r"\.css*")
+        if p.match(filename):
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = css_validator_url + '/?' + encoded_args
@@ -87,10 +89,12 @@ def checkAvailability(filename):
     except:
         return -1
     
-# Get all HTML pages from a root url given a depth scan level
+# Get all links from a root url given a depth scan level
 def getAllLinksRec(root,depth):
     
     links = []
+    if not root.endswith('/'):
+        root = root + '/'
     links.append(str(root))
     i = 0
     
@@ -102,17 +106,33 @@ def getAllLinksRec(root,depth):
         #read html code
         html = website.read()
         
-        #use re.findall to get all the links
-        aux = re.findall('"((http|ftp)s?://.*?)"', html)
-        aux2 = []
+        dom =  lxml.html.fromstring(html)
         
-        for item in aux:
-            aux2.append(item[0])
-            
-        links.extend(aux2)
+        aux = []
         
+        document_links = dom.xpath('//a/@href | //link/@href')
+        
+        for link in document_links: # select the url in href for all a tags(links)
+            if link.startswith('http') or link.startswith('https'):
+                if not (link in links) and not (link in aux):
+                    aux.append(link)
+            else:   
+                link = root + link
+                if not (link in links) and not (link in aux):
+                    aux.append(root + link)                
+        
+        for link in aux:
+            if link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js'):
+                    aux.remove(link)
+        
+        links.extend(aux) 
+                 
+        print len(links)
         while len(links) > depth:
             links.pop()
+        
+        print len(links)
+        print depth 
         
         i+=1
     
@@ -141,105 +161,138 @@ class Report(ndb.Model):
     date = ndb.StringProperty()
     time = ndb.StringProperty()
     user = ndb.StringProperty()
+    state = ndb.StringProperty()
     
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
         
-        root = self.request.get('url')
-        links = getAllLinksRec(root, 5)
-        root = self.request.get('url')
-        
-        option = self.request.get('optradio')
-        
-        for link in links:
-            # Add the task to the default queue.
-            taskqueue.add(url='/validation', params={'url': link, 'optradio': option})
-        
-        self.redirect('/')
+        try:
+            root = self.request.get('url')
+            max_pags = self.request.get('max_pags')
+            if max_pags == '':
+                max_pags = 50
+                
+            max_pags = int(max_pags)
+                
+            links = getAllLinksRec(root, max_pags)
+            
+            option = self.request.get('optradio')
+            
+            for link in links:
+                
+                #Add the task to the default queue.
+                taskqueue.add(url='/validation', params={'url': link, 'optradio': option})
+            
+            self.redirect('/')
+        except:
+            self.response.write("Error: Invalid URL")
+            return None
         
 class Validation(webapp2.RequestHandler):
     def post(self):
         
-        content = ''
+        state = 'ERROR'
+        retrys = 2
         
-        try:
-            f = self.request.get('url')
-        except urllib2.HTTPError, e:
-            content += 'Error: ' + e
-        
-        option = self.request.get('optradio')
-        
-        if option == 'val_html':
-            out = ''
-            errors = 0
-            warnings = 0
-    
-            out += "validating: %s ...\n" % f
-            result = ''
-            try:
-                result = validate(f)
-            except:
-                content += "Error: Invalid URL"
+        while retrys > 0 and state == 'ERROR':
             
-            if result == '':
-                out += 'Error: Invalid URL. URL must start with http:// or https://'
-                     
+            content = ''
+            
             try:
-                if f.endswith('.css'):
-                    errorcount = result['cssvalidation']['result']['errorcount']
-                    warningcount = result['cssvalidation']['result']['warningcount']
+                f = self.request.get('url')
+            except urllib2.HTTPError, e:
+                content += 'Error: ' + e
+                state = 'ERROR'
+            
+            option = self.request.get('optradio')
+            
+            if option == 'val_html':
+                out = ''
+                errors = 0
+                warnings = 0
+        
+                result = ''
+                try:
+                    result = validate(f)
+                except:
+                    content += "Error: Invalid URL"
+                    state = 'ERROR'
+                
+                if result == '':
+                    out += 'Error: Invalid URL. URL must start with http:// or https://'
+                    state = 'ERROR'
+                         
+                try:
+                    p = re.compile(r"\.css*")
+                    if p.match(f):
+                        errorcount = result['cssvalidation']['result']['errorcount']
+                        warningcount = result['cssvalidation']['result']['warningcount']
+                        
+                        for msg in result['cssvalidation']['errors']:
+                            out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
+                        
+                        for msg in result['cssvalidation']['warnings']:
+                            out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
+                        
+                        errors += errorcount
+                        warnings += warningcount
+                    else:
+                        for msg in result['messages']:
+                            if 'lastLine' in msg:
+                                out += "%(type)s: line %(lastLine)d: %(message)s \n" % msg
+                            else:
+                                out += "%(type)s: %(message)s \n" % msg
+                            if msg['type'] == 'error':
+                                errors += 1
+                            else:
+                                warnings += 1
                     
-                    for msg in result['cssvalidation']['errors']:
-                        out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
+                    out += "\nErrors: %s \n" % errors
+                    out += "Warnings: %s" % warnings
                     
-                    for msg in result['cssvalidation']['warnings']:
-                        out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
+                    content += out.replace("\n", "<br />")
                     
-                    errors += errorcount
-                    warnings += warningcount
+                    if errors == 0:
+                        state = 'PASS'
+                    else:
+                        state = 'FAIL'
+                    
+                except:
+                    content += out.replace("\n", "<br />")
+                    state = 'ERROR'
+                
+                content += '<br/><br/>'
+                    
+            elif option == 'check_availability':
+                code = checkAvailability(f)
+                if code >= 200 and code < 300:
+                    content += str(code) + '<br/>Request OK'
+                    state = 'PASS'
+                elif code != -1:
+                    content += str(code) + '<br/>Request FAILED'
+                    state = 'FAIL'
                 else:
-                    for msg in result['messages']:
-                        if 'lastLine' in msg:
-                            out += "%(type)s: line %(lastLine)d: %(message)s \n" % msg
-                        else:
-                            out += "%(type)s: %(message)s \n" % msg
-                        if msg['type'] == 'error':
-                            errors += 1
-                        else:
-                            warnings += 1
+                    content += 'Error: Invalid URL'
+                    state = 'ERROR'
                 
-                out += "\nErrors: %s \n" % errors
-                out += "Warnings: %s" % warnings
+                content += '<br/><br/>'
+                    
+            elif option == 'val_wcag':
+                try:
+                    result = validateWCAG(f)
+                    if result:
+                        content += result
+                        state = 'OK'
+                    else:
+                        content += "Error: Invalid URL. URL must start with http:// or https://"
+                        state = 'ERROR'
+                except:
+                    content += "Error: Deadline exceeded while waiting for HTTP response"
+                    state = 'ERROR'
                 
-                content += out.replace("\n", "<br />")
+                content += '<br/><br/>'
                 
-            except:
-                content += out.replace("\n", "<br />")
-            
-            content += '<br/><br/>'
-                
-        elif option == 'check_availability':
-            code = checkAvailability(f)
-            if code >= 200 and code < 300:
-                content += str(code) + '<br/>Request OK'
-            elif code != -1:
-                content += str(code) + '<br/>Request FAILED'
-            else:
-                content += 'Error: Invalid URL'
-            
-            content += '<br/><br/>'
-                
-        elif option == 'val_wcag':
-            try:
-                result = validateWCAG(f)
-                if result:
-                    content += result
-                else:
-                    content += "Error: Invalid URL. URL must start with http:// or https://"
-            except:
-                content += "Error: Deadline exceeded while waiting for HTTP response"
-            
-            content += '<br/><br/>'
+            retrys -= 1
             
         sys_time = time.strftime("%H:%M:%S")
         sys_date = time.strftime("%d/%m/%Y")
@@ -251,6 +304,7 @@ class Validation(webapp2.RequestHandler):
         report.content = content
         report.date = sys_date
         report.time = sys_time
+        report.state = state
         
         report.put()
         
