@@ -40,8 +40,8 @@ def validate(filename):
     if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
         urlfetch.set_default_fetch_deadline(60)
-        p = re.compile(r"\.css*")
-        if p.match(filename):
+        p = re.compile(r'\.css*')
+        if p.search(filename):
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = css_validator_url + '/?' + encoded_args
@@ -223,16 +223,17 @@ class Validation(webapp2.RequestHandler):
                     state = 'ERROR'
                          
                 try:
-                    p = re.compile(r"\.css*")
-                    if p.match(f):
+                    p = re.compile(r'\.css*')
+                    if p.search(f):
                         errorcount = result['cssvalidation']['result']['errorcount']
                         warningcount = result['cssvalidation']['result']['warningcount']
                         
-                        for msg in result['cssvalidation']['errors']:
-                            out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
-                        
-                        for msg in result['cssvalidation']['warnings']:
-                            out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
+                        if errorcount > 0:
+                            for msg in result['cssvalidation']['errors']:
+                                out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
+                        if warningcount > 0:
+                            for msg in result['cssvalidation']['warnings']:
+                                out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
                         
                         errors += errorcount
                         warnings += warningcount
