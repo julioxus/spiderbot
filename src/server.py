@@ -89,15 +89,16 @@ def checkAvailability(filename):
         return -1
     
 # Get all links from a root url given a depth scan level
-def getAllLinksRec(root,depth):
+def getAllLinksRec(root,depth,max_pages):
     
     links = []
     if not root.endswith('/'):
         root = root + '/'
     links.append((str(root),'html'))
+    max_reached = False
     i = 0
     
-    while len(links) < depth:
+    for i in range(0,depth):
         
         #connect to a URL
         website = urllib2.urlopen(links[i][0])
@@ -135,10 +136,12 @@ def getAllLinksRec(root,depth):
         
         links.extend(aux) 
                  
-        while len(links) > depth:
+        while len(links) > max_pages:
             links.pop()
-                
-        i+=1
+            max_reached = True
+            
+        if max_reached:
+            break
     
     return links
 
@@ -178,12 +181,16 @@ class QueueValidation(webapp2.RequestHandler):
         try:
             root = self.request.get('url')
             max_pags = self.request.get('max_pags')
+            depth = self.request.get('depth')
             if max_pags == '':
                 max_pags = 50
+            if depth == '':
+                depth = 1
                 
             max_pags = int(max_pags)
+            depth = int(depth)
                 
-            links = getAllLinksRec(root, max_pags)
+            links = getAllLinksRec(root, depth, max_pags)
             
             option = self.request.get('optradio')
             
