@@ -29,7 +29,7 @@ wcag_validator_url = 'http://achecker.ca/checkacc.php'
 ACHECKER_ID = '8d50ba76d166da61bdc9dfa3c97247b32dd1014c'
 
 
-def validate(filename):
+def validate(filename,type):
     '''
     Validate file and return JSON result as dictionary.
     'filename' can be a file name or an HTTP URL.
@@ -40,8 +40,7 @@ def validate(filename):
     if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
         urlfetch.set_default_fetch_deadline(60)
-        p = re.compile(r'\.css*')
-        if p.search(filename):
+        if type == 'css':
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = css_validator_url + '/?' + encoded_args
@@ -54,7 +53,7 @@ def validate(filename):
             r = urllib2.urlopen(url)
      
         result = json.load(r)
-        time.sleep(2)   # Be nice and don't hog the free validator service.
+        #time.sleep(2)   # Be nice and don't hog the free validator service.
         return result
     else:
         return ''
@@ -110,19 +109,24 @@ def getAllLinksRec(root,depth):
         
         aux = []
         
-        document_links = dom.xpath('//a/@href | //link/@href')
+        document_links = dom.xpath('//a/@href')
+        header_css_links = dom.xpath("//link/@href[rel='stylesheet']")
+        header_normal_links= dom.xpath("//link/@href")
+        header_normal_links = list(set(header_normal_links) - set(header_css_links))
         
         for link in document_links: # select the url in href for all a tags(links)
-            if link.startswith('http') or link.startswith('https'):
+            if link.startswith('http'):
                 if not (link in links) and not (link in aux):
                     aux.append(link)
-            else:   
+            else:
+                if link.startswith('/'):
+                    link = link[1:]   
                 link = root + link
                 if not (link in links) and not (link in aux):
-                    aux.append(root + link)                
+                    aux.append(link)                
         
         for link in aux:
-            if link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js'):
+            if link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or link.endswith('.ico'):
                     aux.remove(link)
         
         links.extend(aux) 
