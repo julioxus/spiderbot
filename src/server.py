@@ -271,7 +271,7 @@ class Validation(webapp2.RequestHandler):
                 content += '<br/><br/>'
                     
             elif option == 'check_availability':
-                code = checkAvailability(f[0])
+                code = checkAvailability(f)
                 if code >= 200 and code < 300:
                     content += str(code) + '<br/>Request OK'
                     state = 'PASS'
@@ -286,7 +286,7 @@ class Validation(webapp2.RequestHandler):
                     
             elif option == 'val_wcag':
                 try:
-                    result = validateWCAG(f[0])
+                    result = validateWCAG(f)
                     if result:
                         content += result
                         state = 'OK'
