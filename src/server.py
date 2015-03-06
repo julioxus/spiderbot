@@ -158,14 +158,19 @@ class login(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('template/login.html')
         self.response.write(template.render(template_values))
         
-class Report(ndb.Model):
+class PageResult(ndb.Model):
     url = ndb.StringProperty()
-    type = ndb.StringProperty()
     content = ndb.TextProperty()
+    state = ndb.StringProperty()
+    
+class Report(ndb.Model):
+    web = ndb.StringProperty()
+    validation_type = ndb.StringProperty()
     date = ndb.StringProperty()
     time = ndb.StringProperty()
     user = ndb.StringProperty()
-    state = ndb.StringProperty()
+    results = ndb.StructuredProperty(PageResult, repeated=True)
+    
     
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
@@ -301,19 +306,18 @@ class Validation(webapp2.RequestHandler):
                 
             retrys -= 1
             
-        sys_time = time.strftime("%H:%M:%S")
-        sys_date = time.strftime("%d/%m/%Y")
+        #sys_time = time.strftime("%H:%M:%S")
+        #sys_date = time.strftime("%d/%m/%Y")
         
-        report = Report()
+        page_result = PageResult()
         
-        report.url = f
-        report.type = option
-        report.content = content
-        report.date = sys_date
-        report.time = sys_time
-        report.state = state
+        page_result.url = f
+        page_result.content = content
+        #report.date = sys_date
+        #report.time = sys_time
+        page_result.state = state
         
-        report.put()
+        page_result.put()
         
 urls = [('/',MainPage),
         ('/login',login),
