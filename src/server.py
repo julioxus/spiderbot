@@ -29,7 +29,7 @@ wcag_validator_url = 'http://achecker.ca/checkacc.php'
 ACHECKER_ID = '8d50ba76d166da61bdc9dfa3c97247b32dd1014c'
 
 
-def validate(filename,type):
+def validate(filename,page_type):
     '''
     Validate file and return JSON result as dictionary.
     'filename' can be a file name or an HTTP URL.
@@ -40,7 +40,7 @@ def validate(filename,type):
     if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
         urlfetch.set_default_fetch_deadline(60)
-        if type == 'css':
+        if page_type == 'css':
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
             url = css_validator_url + '/?' + encoded_args
@@ -94,13 +94,13 @@ def getAllLinksRec(root,depth):
     links = []
     if not root.endswith('/'):
         root = root + '/'
-    links.append(str(root))
+    links.append((str(root),'html'))
     i = 0
     
     while len(links) < depth:
         
         #connect to a URL
-        website = urllib2.urlopen(links[i])
+        website = urllib2.urlopen(links[i][0])
         
         #read html code
         html = website.read()
@@ -109,35 +109,35 @@ def getAllLinksRec(root,depth):
         
         aux = []
         
-        document_links = dom.xpath('//a/@href')
-        header_css_links = dom.xpath("//link/@href[rel='stylesheet']")
-        header_normal_links= dom.xpath("//link/@href")
-        header_normal_links = list(set(header_normal_links) - set(header_css_links))
+        document_links = dom.xpath('//a/@href | //link/@href')
+        css_links = dom.xpath('//*[@rel="stylesheet"]/@href')
         
-        for link in document_links: # select the url in href for all a tags(links)
+        for link in document_links: # select the url in href for all a and link tags(links)
+            
+            if link in css_links:
+                page_type = 'css'
+            else:
+                page_type = 'html'
+            
             if link.startswith('http'):
-                if not (link in links) and not (link in aux):
-                    aux.append(link)
+                if not ((link,page_type) in links) and not ((link,page_type) in aux):
+                    aux.append((link,page_type))
             else:
                 if link.startswith('/'):
                     link = link[1:]   
                 link = root + link
-                if not (link in links) and not (link in aux):
-                    aux.append(link)                
+                if not ((link,page_type) in links) and not ((link,page_type) in aux):
+                    aux.append((link,page_type))               
         
         for link in aux:
-            if link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or link.endswith('.ico'):
+            if link[0].endswith('.jpg') or link[0].endswith('.png') or link[0].endswith('.js') or link[0].endswith('.ico'):
                     aux.remove(link)
         
         links.extend(aux) 
                  
-        print len(links)
         while len(links) > depth:
             links.pop()
-        
-        print len(links)
-        print depth 
-        
+                
         i+=1
     
     return links
@@ -182,10 +182,12 @@ class QueueValidation(webapp2.RequestHandler):
             
             option = self.request.get('optradio')
             
+            print links
+            
             for link in links:
                 
                 #Add the task to the default queue.
-                taskqueue.add(url='/validation', params={'url': link, 'optradio': option})
+                taskqueue.add(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option})
             
             self.redirect('/')
         except:
@@ -204,6 +206,7 @@ class Validation(webapp2.RequestHandler):
             
             try:
                 f = self.request.get('url')
+                page_type = self.request.get('page_type')
             except urllib2.HTTPError, e:
                 content += 'Error: ' + e
                 state = 'ERROR'
@@ -217,7 +220,7 @@ class Validation(webapp2.RequestHandler):
         
                 result = ''
                 try:
-                    result = validate(f)
+                    result = validate(f,page_type)
                 except:
                     content += "Error: Invalid URL"
                     state = 'ERROR'
@@ -227,8 +230,7 @@ class Validation(webapp2.RequestHandler):
                     state = 'ERROR'
                          
                 try:
-                    p = re.compile(r'\.css*')
-                    if p.search(f):
+                    if page_type == 'css':
                         errorcount = result['cssvalidation']['result']['errorcount']
                         warningcount = result['cssvalidation']['result']['warningcount']
                         
@@ -269,7 +271,7 @@ class Validation(webapp2.RequestHandler):
                 content += '<br/><br/>'
                     
             elif option == 'check_availability':
-                code = checkAvailability(f)
+                code = checkAvailability(f[0])
                 if code >= 200 and code < 300:
                     content += str(code) + '<br/>Request OK'
                     state = 'PASS'
@@ -284,7 +286,7 @@ class Validation(webapp2.RequestHandler):
                     
             elif option == 'val_wcag':
                 try:
-                    result = validateWCAG(f)
+                    result = validateWCAG(f[0])
                     if result:
                         content += result
                         state = 'OK'
