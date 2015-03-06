@@ -10,6 +10,8 @@ import urllib2
 import time
 import validators
 import entities
+from google.appengine.ext import ndb
+from time import sleep
 
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -35,11 +37,17 @@ class login(webapp2.RequestHandler):
         template_values={}
         template = JINJA_ENVIRONMENT.get_template('template/login.html')
         self.response.write(template.render(template_values))
-    
+
+# Global variables for each user (User entity in the future)
+
+n_links = {'admin': 0}
+root_link = {'admin': ''}
+lock = {'admin': False}
+
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
         
-        try:
+        #try:
             root = self.request.get('url')
             max_pags = self.request.get('max_pags')
             depth = self.request.get('depth')
@@ -51,21 +59,28 @@ class QueueValidation(webapp2.RequestHandler):
             max_pags = int(max_pags)
             depth = int(depth)
                 
-            links = validators.getAllLinksRec(root, depth, max_pags)
+            links = validators.getAllLinks(root, depth, max_pags)
             
             option = self.request.get('optradio')
             
-            print links
+            global n_links
+            global root_link
+            global lock
+            n_links['admin'] = len(links)
+            root_link['admin'] = root
             
-            for link in links:
-                
-                #Add the task to the default queue.
-                taskqueue.add(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option})
-            
-            self.redirect('/')
-        except:
-            self.response.write("Error: Invalid URL")
-            return None
+            if lock['admin'] == False:
+                for link in links:
+                    
+                    #Add the task to the default queue.
+                    taskqueue.add(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option})
+                lock['admin'] = True
+                self.redirect('/')
+            else:
+                self.response.write("You already have pending tasks executing, wait and try again later")
+        #except:
+        #    self.response.write("Error: Invalid URL")
+        #    return None
         
 class Validation(webapp2.RequestHandler):
     def post(self):
@@ -174,18 +189,39 @@ class Validation(webapp2.RequestHandler):
                 
             retrys -= 1
             
-        #sys_time = time.strftime("%H:%M:%S")
-        #sys_date = time.strftime("%d/%m/%Y")
+        global n_links
+        global root_link
+        global lock
         
         page_result = entities.PageResult()
-        
+        page_result.web = root_link['admin']
         page_result.url = f
         page_result.content = content
-        #report.date = sys_date
-        #report.time = sys_time
         page_result.state = state
-        
         page_result.put()
+        sleep(1)
+        current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
+        
+        print current_links
+        print n_links['admin']
+        
+        if current_links == n_links['admin']:
+            report = entities.Report()
+            report.web = root_link['admin']
+            report.validation_type = option
+            report.user = 'admin'
+            qry = entities.PageResult.query(entities.PageResult.web == root_link['admin'])
+            report.results = qry.fetch()
+            
+            report.put()
+            ndb.delete_multi(
+                entities.PageResult.query(entities.PageResult.web == root_link['admin']).fetch(keys_only=True)
+            )
+            
+            # Reset global variables for user
+            n_links['admin'] = 0
+            root_link['admin'] = ''
+            lock['admin'] = False
         
 urls = [('/',MainPage),
         ('/login',login),

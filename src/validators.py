@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -⁻- coding: UTF-8 -*-
+
 from google.appengine.api import urlfetch
 import urllib
 import json
@@ -70,7 +73,7 @@ def checkAvailability(filename):
         return -1
     
 # Get all links from a root url given a depth scan level
-def getAllLinksRec(root,depth,max_pages):
+def getAllLinks(root,depth,max_pages):
     
     links = []
     if not root.endswith('/'):
