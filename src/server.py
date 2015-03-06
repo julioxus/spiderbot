@@ -227,7 +227,12 @@ class Validation(webapp2.RequestHandler):
 class Reports(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
-        template_values={}
+        report_names = []
+        reports = entities.Report.query().fetch()
+        for report in reports:
+            report_names.append(report.web)
+        
+        template_values={'report_names':report_names}
         template = JINJA_ENVIRONMENT.get_template('template/reports.html')
         self.response.write(template.render(template_values))
         

@@ -18,5 +18,23 @@ body {
 
 #logo{
 	width: 500px;
+}
+
+#reports_container{
+	width: 600px;
+	margin: auto;
+	border: 1px solid;
+	padding: 40px;
+	border-top-left-radius: 6px;
+}
+
+.report_table{
+	float: left;
+	margin: 10px;
+	text-align: center;
+}
+
+.report_image{
+	width: 100px;
 	
 }
