@@ -47,7 +47,7 @@ lock = {'admin': False}
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
         
-        #try:
+        try:
             root = self.request.get('url')
             max_pags = self.request.get('max_pags')
             depth = self.request.get('depth')
@@ -78,9 +78,9 @@ class QueueValidation(webapp2.RequestHandler):
                 self.redirect('/')
             else:
                 self.response.write("You already have pending tasks executing, wait and try again later")
-        #except:
-        #    self.response.write("Error: Invalid URL")
-        #    return None
+        except:
+            self.response.write("Error: Invalid URL")
+            return None
         
 class Validation(webapp2.RequestHandler):
     def post(self):
@@ -201,6 +201,7 @@ class Validation(webapp2.RequestHandler):
         page_result.put()
         sleep(1)
         current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
+        current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
         
         print current_links
         print n_links['admin']
@@ -222,11 +223,19 @@ class Validation(webapp2.RequestHandler):
             n_links['admin'] = 0
             root_link['admin'] = ''
             lock['admin'] = False
+            
+class Reports(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers['Content-Type'] = 'text/html'
+        template_values={}
+        template = JINJA_ENVIRONMENT.get_template('template/reports.html')
+        self.response.write(template.render(template_values))
         
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
         ('/qvalidation',QueueValidation),
+        ('/reports',Reports)
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
