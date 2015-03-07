@@ -198,10 +198,9 @@ class Validation(webapp2.RequestHandler):
         page_result.url = f
         page_result.content = content
         page_result.state = state
+        current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
         page_result.put()
-        sleep(1)
-        current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
-        current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
+        current_links += 1
         
         print current_links
         print n_links['admin']
@@ -235,8 +234,11 @@ class Reports(webapp2.RequestHandler):
         
 class ReportViewer(webapp2.RequestHandler):
     def get(self):
-        report_id = self.request.get('report_id')
-        report = entities.Report.query(entities.Report.web==report_id).get()
+        report_web = self.request.get('report_web')
+        report_validation_type = self.request.get('report_validation_type')
+        report = entities.Report.query(
+            entities.Report.web==report_web and
+            entities.Report.validation_type == report_validation_type).get()
         template_values={'report':report}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))

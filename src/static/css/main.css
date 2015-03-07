@@ -38,3 +38,19 @@ body {
 	width: 100px;
 	
 }
+
+.report_results_table{
+	margin: auto;
+	margin-top: 20px;
+	width: 600px;
+}
+
+.report_results_table tr,th,td{
+	border: 1px solid;
+	text-align: center;
+	padding: 10px;
+}
+
+#analyze-img{
+	width: 50px;
+}
