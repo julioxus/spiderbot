@@ -55,11 +55,13 @@
 
     </div><!-- /.container -->
     <div class="container" id="reports_container">
-    {% for report_name in report_names %}
-    	<table class="report_table">
-			<caption align="bottom">{{report_name}}</caption>
-			<tr><td><img class="report_image" src="static/images/report.png"/></td></tr>
-		</table>
+    {% for report in reports %}
+    	<a href="viewreport?report_id={{report.web}}">
+	    	<table class="report_table">
+				<caption align="bottom">{{report.web}}</caption>
+				<tr><td><img class="report_image" src="static/images/report.png"/></td></tr>
+			</table>
+		</a>
 	{% endfor %}
 	</div>
 

@@ -227,20 +227,27 @@ class Validation(webapp2.RequestHandler):
 class Reports(webapp2.RequestHandler):
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
-        report_names = []
         reports = entities.Report.query().fetch()
-        for report in reports:
-            report_names.append(report.web)
         
-        template_values={'report_names':report_names}
+        template_values={'reports':reports}
         template = JINJA_ENVIRONMENT.get_template('template/reports.html')
         self.response.write(template.render(template_values))
+        
+class ReportViewer(webapp2.RequestHandler):
+    def get(self):
+        report_id = self.request.get('report_id')
+        report = entities.Report.query(entities.Report.web==report_id).get()
+        template_values={'report':report}
+        template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
+        self.response.write(template.render(template_values))
+        
         
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
         ('/qvalidation',QueueValidation),
-        ('/reports',Reports)
+        ('/reports',Reports),
+        ('/viewreport',ReportViewer),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
