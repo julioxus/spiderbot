@@ -57,7 +57,7 @@
     </div><!-- /.container -->
     <div class="container" id="reports_container">
     {% for report in reports %}
-    	<a href="viewreport?report_web={{report.web}}&report_validation_type={{report.validation_type}}">
+    	<a href="viewreport?web={{report.web}}&validation_type={{report.validation_type}}">
 	    	<table class="report_table">
 				<caption align="bottom">{{report.web}}</caption>
 				<tr><td><img class="report_image" src="static/images/report.png"/></td></tr>

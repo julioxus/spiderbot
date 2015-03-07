@@ -11,7 +11,6 @@ import time
 import validators
 import entities
 from google.appengine.ext import ndb
-from time import sleep
 
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -234,11 +233,11 @@ class Reports(webapp2.RequestHandler):
         
 class ReportViewer(webapp2.RequestHandler):
     def get(self):
-        report_web = self.request.get('report_web')
-        report_validation_type = self.request.get('report_validation_type')
+        web = self.request.get('web')
+        validation_type = self.request.get('validation_type')
         report = entities.Report.query(
-            entities.Report.web==report_web and
-            entities.Report.validation_type == report_validation_type).get()
+            entities.Report.web==web and
+            entities.Report.validation_type == validation_type).get()
         template_values={'report':report}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
