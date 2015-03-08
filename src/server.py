@@ -46,21 +46,16 @@ class login(webapp2.RequestHandler):
             if user.password==password:
                 self.response.headers.add_header('Set-Cookie',"name="+str(user.name))
                 self.response.headers['Content-Type'] = 'text/html'
+                self.redirect('/')
             else:
                 self.response.write('Incorrect password')
         else:
             self.response.write('Incorrect user')
 
-        
-
-# Global variables for each user (User entity in the future)
-
-n_links = {'admin': 0}
-root_link = {'admin': ''}
-lock = {'admin': False}
-
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
+        
+        username = self.request.cookies.get("name")
         
         try:
             root = self.request.get('url')
@@ -78,18 +73,18 @@ class QueueValidation(webapp2.RequestHandler):
             
             option = self.request.get('optradio')
             
-            global n_links
-            global root_link
-            global lock
-            n_links['admin'] = len(links)
-            root_link['admin'] = root
+            user = entities.User.query(entities.User.name == username).get()
+            user.n_links = len(links)
+            user.root_link = root
             
-            if lock['admin'] == False:
+            current_link = 1
+            if user.lock == False:
                 for link in links:
-                    
                     #Add the task to the default queue.
-                    taskqueue.add(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option})
-                lock['admin'] = True
+                    taskqueue.add(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'current_link': current_link})
+                    current_link+=1
+                user.lock = True
+                user.put()
                 self.redirect('/')
             else:
                 self.response.write("You already have pending tasks executing, wait and try again later")
@@ -203,41 +198,40 @@ class Validation(webapp2.RequestHandler):
                 content += '<br/><br/>'
                 
             retrys -= 1
-            
-        global n_links
-        global root_link
-        global lock
+        
+        username = self.request.get("username")
+        user = entities.User.query(entities.User.name == username).get()
         
         page_result = entities.PageResult()
-        page_result.web = root_link['admin']
+        page_result.web = user.root_link
         page_result.url = f
         page_result.content = content
         page_result.state = state
-        current_links = entities.PageResult.query(entities.PageResult.web == root_link['admin']).count()
+        current_link = int(self.request.get('current_link'))
         page_result.put()
-        current_links += 1
         
-        print current_links
-        print n_links['admin']
+        print current_link
+        print user.n_links
         
-        if current_links == n_links['admin']:
+        if current_link == user.n_links:
             report = entities.Report()
-            report.web = root_link['admin']
+            report.web = user.root_link
             report.validation_type = option
-            report.user = 'admin'
-            qry = entities.PageResult.query(entities.PageResult.web == root_link['admin'])
+            report.user = user.name
+            qry = entities.PageResult.query(entities.PageResult.web == user.root_link)
             report.results = qry.fetch()
             
             report.put()
             ndb.delete_multi(
-                entities.PageResult.query(entities.PageResult.web == root_link['admin']).fetch(keys_only=True)
+                entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
             )
             
             # Reset global variables for user
-            n_links['admin'] = 0
-            root_link['admin'] = ''
-            lock['admin'] = False
-            
+            user.n_links = 0
+            user.root_link = ''
+            user.lock = False
+            user.put()
+      
 class Reports(webapp2.RequestHandler):
     def get(self):
         if self.request.cookies.get("name"):
