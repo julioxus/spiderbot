@@ -22,20 +22,36 @@ JINJA_ENVIRONMENT = jinja2.Environment(
 
 
 class MainPage(webapp2.RequestHandler):
-    
     def get(self):
-        self.response.headers['Content-Type'] = 'text/html'
-        template_values={}
-        template = JINJA_ENVIRONMENT.get_template('template/index.html')
-        self.response.write(template.render(template_values))
+        if self.request.cookies.get("name"):
+            self.response.headers['Content-Type'] = 'text/html'
+            template_values={}
+            template = JINJA_ENVIRONMENT.get_template('template/index.html')
+            self.response.write(template.render(template_values))
+        else:
+            self.redirect('/login')
         
 class login(webapp2.RequestHandler):
-    
     def get(self):
         self.response.headers['Content-Type'] = 'text/html'
         template_values={}
         template = JINJA_ENVIRONMENT.get_template('template/login.html')
         self.response.write(template.render(template_values))
+        
+    def post(self):
+        name = self.request.get('user')
+        user = entities.User.query(entities.User.name==name).get()
+        if name is not None:
+            password = self.request.get('password')
+            if user.password==password:
+                self.response.headers.add_header('Set-Cookie',"name="+str(user.name))
+                self.response.headers['Content-Type'] = 'text/html'
+            else:
+                self.response.write('Incorrect password')
+        else:
+            self.response.write('Incorrect user')
+
+        
 
 # Global variables for each user (User entity in the future)
 
@@ -224,22 +240,28 @@ class Validation(webapp2.RequestHandler):
             
 class Reports(webapp2.RequestHandler):
     def get(self):
-        self.response.headers['Content-Type'] = 'text/html'
-        reports = entities.Report.query().fetch()
-        
-        template_values={'reports':reports}
-        template = JINJA_ENVIRONMENT.get_template('template/reports.html')
-        self.response.write(template.render(template_values))
+        if self.request.cookies.get("name"):
+            self.response.headers['Content-Type'] = 'text/html'
+            reports = entities.Report.query().fetch()
+            
+            template_values={'reports':reports}
+            template = JINJA_ENVIRONMENT.get_template('template/reports.html')
+            self.response.write(template.render(template_values))
+        else:
+            self.redirect('/login')
         
 class ReportViewer(webapp2.RequestHandler):
     def get(self):
-        report_id = long(self.request.get('id'))
-        reports = entities.Report.query().fetch()
-        report = ''
-        for r in reports:
-            if r.key.id() == report_id:
-                report = r
-                break
+        if self.request.cookies.get("name"):
+            report_id = long(self.request.get('id'))
+            reports = entities.Report.query().fetch()
+            report = ''
+            for r in reports:
+                if r.key.id() == report_id:
+                    report = r
+                    break
+        else:
+            self.redirect('/login')
             
         template_values={'report':report}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
