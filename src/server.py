@@ -233,11 +233,14 @@ class Reports(webapp2.RequestHandler):
         
 class ReportViewer(webapp2.RequestHandler):
     def get(self):
-        web = self.request.get('web')
-        validation_type = self.request.get('validation_type')
-        report = entities.Report.query(
-            entities.Report.web==web and
-            entities.Report.validation_type == validation_type).get()
+        report_id = long(self.request.get('id'))
+        reports = entities.Report.query().fetch()
+        report = ''
+        for r in reports:
+            if r.key.id() == report_id:
+                report = r
+                break
+            
         template_values={'report':report}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))

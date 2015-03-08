@@ -16,3 +16,11 @@ class Report(ndb.Model):
     results = ndb.StructuredProperty(PageResult, repeated=True)
     date = ndb.DateProperty(auto_now=True)
     time = ndb.TimeProperty(auto_now=True)
+
+class User(ndb.Model):
+    name = ndb.StringProperty()
+    password = ndb.StringProperty()
+    email = ndb.StringProperty()
+    n_links = ndb.IntegerProperty(default=0)
+    root_link = ndb.StringProperty()
+    lock = ndb.BooleanProperty(default=False)
