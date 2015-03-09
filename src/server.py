@@ -76,10 +76,11 @@ class QueueValidation(webapp2.RequestHandler):
             user = entities.User.query(entities.User.name == username).get()
             user.n_links = len(links)
             user.root_link = root
+            user.validation_type = option
             
             if user.lock == False:
                 alphaqueue = taskqueue.Queue('alphaqueue')
-                number = 1
+                number = 0
                 for link in links:
                     #Add the task to the default queue.
                     alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
@@ -112,7 +113,7 @@ class Validation(webapp2.RequestHandler):
             
             option = self.request.get('optradio')
             
-            if option == 'val_html':
+            if option == 'HTML':
                 out = ''
                 errors = 0
                 warnings = 0
@@ -169,7 +170,7 @@ class Validation(webapp2.RequestHandler):
                 
                 content += '\n\n'
                     
-            elif option == 'check_availability':
+            elif option == 'CHECK AVAILABILITY':
                 code = validators.checkAvailability(f)
                 if code >= 200 and code < 300:
                     content += str(code) + '<br/>Request OK'
@@ -183,7 +184,7 @@ class Validation(webapp2.RequestHandler):
                 
                 content += '\n\n'
                     
-            elif option == 'val_wcag':
+            elif option == 'WCAG 2.0':
                 try:
                     result = validators.validateWCAG(f)
                     if result:
@@ -224,7 +225,7 @@ class Reports(webapp2.RequestHandler):
                 
                 report = entities.Report()
                 report.web = user.root_link
-                #report.validation_type = option
+                report.validation_type = user.validation_type
                 report.user = user.name
                 report.results = qry.fetch()
                 report.put()
@@ -236,6 +237,7 @@ class Reports(webapp2.RequestHandler):
                 # Reset global variables for user
                 user.n_links = -1
                 user.root_link = ''
+                user.validation_type = ''
                 user.lock = False
                 user.put()
                 time.sleep(2)
@@ -268,6 +270,23 @@ class ReportViewer(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
         
+class PageViewer(webapp2.RequestHandler):
+    def get(self):
+        if self.request.cookies.get("name"):
+            number = int(self.request.get("number"))
+            report_id = long(self.request.get('id'))
+            reports = entities.Report.query().fetch()
+            report = ''
+            for r in reports:
+                if r.key.id() == report_id:
+                    report = r
+                    break
+        else:
+            self.redirect('/login')
+            
+        template_values={'result':report.results[number]}
+        template = JINJA_ENVIRONMENT.get_template('template/page_view.html')
+        self.response.write(template.render(template_values))
         
 urls = [('/',MainPage),
         ('/login',login),
@@ -275,6 +294,7 @@ urls = [('/',MainPage),
         ('/qvalidation',QueueValidation),
         ('/reports',Reports),
         ('/viewreport',ReportViewer),
+        ('/viewpage',PageViewer),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)

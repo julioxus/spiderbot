@@ -21,7 +21,7 @@ body {
 }
 
 #reports_container{
-	width: 600px;
+	width: 800px;
 	margin: auto;
 	border: 1px solid;
 	padding: 40px;
@@ -42,7 +42,7 @@ body {
 .report_results_table{
 	margin: auto;
 	margin-top: 20px;
-	width: 600px;
+	width: 800px;
 }
 
 .report_results_table tr,th,td{

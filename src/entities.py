@@ -24,4 +24,5 @@ class User(ndb.Model):
     email = ndb.StringProperty()
     n_links = ndb.IntegerProperty(default=-1)
     root_link = ndb.StringProperty()
+    validation_type = ndb.StringProperty()
     lock = ndb.BooleanProperty(default=False)

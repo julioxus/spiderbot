@@ -49,13 +49,13 @@
     <div class="container">
 
       <div class="starter-template">
-      	<img id="logo" src="static/images/logo.png" />
-        <h1>{{report.web}}</h1>
+        <h1><a href="{{report.web}}">{{report.web}}</a></h1>
       </div>
 
     </div><!-- /.container -->
     <div class="container" id="reports_container">
 		<p>Last validation executed by: {{report.user}}</p>
+		<p>Validation type: {{report.validation_type}}</p>
 		<p>Date: {{report.date}}</p>
 		<p>Saved at: {{report.time}}</p>
 	</div>
@@ -69,7 +69,7 @@
 		<tr>
 			<td><a href="{{result.url}}">{{result.url}}</a></td>
 			<td>{{result.state}}</td>
-			<td><a href="#"><img id="analyze-img" src="static/images/analyze-data.png"/></a></td>
+			<td><a href="viewpage?id={{report.key.id()}}&number={{result.number}}"><img id="analyze-img" src="static/images/analyze-data.png"/></a></td>
 		</tr>
 	{% endfor %}
 	</table>
