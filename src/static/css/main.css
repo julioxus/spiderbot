@@ -63,3 +63,8 @@ body {
 	text-aling: center;
 	width: 800px;
 }
+
+#button-logout{
+	float: right;
+	margin-top: 8px;
+}

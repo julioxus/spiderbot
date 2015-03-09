@@ -51,6 +51,11 @@ class login(webapp2.RequestHandler):
                 self.response.write('Incorrect password')
         else:
             self.response.write('Incorrect user')
+            
+class logout(webapp2.RequestHandler):
+    def get(self):
+        self.response.headers.add_header("Set-Cookie", "name=; Expires=Thu, 01-Jan-1970 00:00:00 GMT")
+        self.redirect('/')
 
 class QueueValidation(webapp2.RequestHandler):
     def post(self):
@@ -294,6 +299,7 @@ urls = [('/',MainPage),
         ('/reports',Reports),
         ('/viewreport',ReportViewer),
         ('/viewpage',PageViewer),
+        ('/logout',logout),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
