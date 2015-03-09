@@ -8,6 +8,7 @@ class PageResult(ndb.Model):
     url = ndb.StringProperty()
     content = ndb.TextProperty()
     state = ndb.StringProperty()
+    number = ndb.IntegerProperty()
     
 class Report(ndb.Model):
     web = ndb.StringProperty()

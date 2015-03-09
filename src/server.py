@@ -79,9 +79,11 @@ class QueueValidation(webapp2.RequestHandler):
             
             if user.lock == False:
                 alphaqueue = taskqueue.Queue('alphaqueue')
+                number = 1
                 for link in links:
                     #Add the task to the default queue.
-                    alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username}),False)
+                    alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
+                    number += 1
                 user.lock = True
                 user.put()
                 self.redirect('/')
@@ -199,6 +201,7 @@ class Validation(webapp2.RequestHandler):
             retrys -= 1
         
         username = self.request.get("username")
+        number = int(self.request.get("number"))
         user = entities.User.query(entities.User.name == username).get()
         
         page_result = entities.PageResult()
@@ -206,6 +209,7 @@ class Validation(webapp2.RequestHandler):
         page_result.url = f
         page_result.content = content
         page_result.state = state
+        page_result.number = number;
         page_result.put()
       
 class Reports(webapp2.RequestHandler):
@@ -214,7 +218,7 @@ class Reports(webapp2.RequestHandler):
             
             username = self.request.cookies.get("name")
             user = entities.User.query(entities.User.name == username).get()
-            qry = entities.PageResult.query(entities.PageResult.web == user.root_link)
+            qry = entities.PageResult.query(entities.PageResult.web == user.root_link).order(entities.PageResult.number)
             
             if qry.count() == user.n_links:
                 
