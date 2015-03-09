@@ -51,17 +51,28 @@
 
       <div class="starter-template">
         <h1>Reports</h1>
+        {% if error_message %}
+	        <br/>
+	        <div class="alert alert-danger" id="error_message">
+				<p>{{error_message}}</p>
+		  	</div>
+		{% endif %}
       </div>
-
     </div><!-- /.container -->
     <div class="container" id="reports_container">
     {% for report in reports %}
-    	<a href="viewreport?id={{report.key.id()}}">
-	    	<table class="report_table">
-				<caption align="bottom">{{report.web}}</caption>
-				<tr><td><img class="report_image" src="static/images/report.png"/></td></tr>
-			</table>
-		</a>
+    	<div id=report">
+	    	<a href="viewreport?id={{report.key.id()}}">
+		    	<table class="report_table">
+					<caption align="bottom">
+						{{report.web}}
+						<br/>
+						Validation type: {{report.validation_type}}
+					</caption>
+					<tr><td><img class="report_image" src="static/images/report.png"/></td></tr>
+				</table>
+			</a>
+		</div>
 	{% endfor %}
 	</div>
 

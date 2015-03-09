@@ -34,9 +34,12 @@ body {
 	text-align: center;
 }
 
+#report{
+	width: 100px;
+}
+
 .report_image{
 	width: 100px;
-	
 }
 
 .report_results_table{
@@ -53,4 +56,10 @@ body {
 
 #analyze-img{
 	width: 50px;
+}
+
+#error_message{
+	margin: auto;
+	text-aling: center;
+	width: 800px;
 }

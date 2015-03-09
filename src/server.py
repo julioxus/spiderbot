@@ -122,11 +122,7 @@ class Validation(webapp2.RequestHandler):
                 try:
                     result = validators.validate(f,page_type)
                 except:
-                    content += "Error: Invalid URL"
-                    state = 'ERROR'
-                
-                if result == '':
-                    out += 'Error: Invalid URL. URL must start with http:// or https://'
+                    content += "Error parsing URL"
                     state = 'ERROR'
                          
                 try:
@@ -173,13 +169,13 @@ class Validation(webapp2.RequestHandler):
             elif option == 'CHECK AVAILABILITY':
                 code = validators.checkAvailability(f)
                 if code >= 200 and code < 300:
-                    content += str(code) + '<br/>Request OK'
+                    content += str(code) + '\nRequest OK'
                     state = 'PASS'
                 elif code != -1:
-                    content += str(code) + '<br/>Request FAILED'
+                    content += str(code) + '\nRequest FAILED'
                     state = 'FAIL'
                 else:
-                    content += 'Error: Invalid URL'
+                    content += 'Error parsing URL'
                     state = 'ERROR'
                 
                 content += '\n\n'
@@ -191,7 +187,7 @@ class Validation(webapp2.RequestHandler):
                         content += result
                         state = 'OK'
                     else:
-                        content += "Error: Invalid URL. URL must start with http:// or https://"
+                        content += "Error parsing URL"
                         state = 'ERROR'
                 except:
                     content += "Error: Deadline exceeded while waiting for HTTP response"
@@ -220,34 +216,37 @@ class Reports(webapp2.RequestHandler):
             username = self.request.cookies.get("name")
             user = entities.User.query(entities.User.name == username).get()
             qry = entities.PageResult.query(entities.PageResult.web == user.root_link).order(entities.PageResult.number)
-            
-            if qry.count() == user.n_links:
+            error_message = ''
+            try:
+                if qry.count() == user.n_links:
+                    
+                    report = entities.Report()
+                    report.web = user.root_link
+                    report.validation_type = user.validation_type
+                    report.user = user.name
+                    report.results = qry.fetch()
+                    report.put()
+                    
+                    ndb.delete_multi(
+                        entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
+                    )
+                    
+                    # Reset global variables for user
+                    user.n_links = -1
+                    user.root_link = ''
+                    user.validation_type = ''
+                    user.lock = False
+                    user.put()
+                    time.sleep(2)
+                    self.redirect('/reports')
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
-                report = entities.Report()
-                report.web = user.root_link
-                report.validation_type = user.validation_type
-                report.user = user.name
-                report.results = qry.fetch()
-                report.put()
                 
-                ndb.delete_multi(
-                    entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
-                )
-                
-                # Reset global variables for user
-                user.n_links = -1
-                user.root_link = ''
-                user.validation_type = ''
-                user.lock = False
-                user.put()
-                time.sleep(2)
-                self.redirect('/reports')
-            
-            
             self.response.headers['Content-Type'] = 'text/html'
             reports = entities.Report.query().fetch()
             
-            template_values={'reports':reports}
+            template_values={'reports':reports, 'error_message': error_message}
             template = JINJA_ENVIRONMENT.get_template('template/reports.html')
             self.response.write(template.render(template_values))
         else:
