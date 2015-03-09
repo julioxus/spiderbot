@@ -210,10 +210,17 @@ class Validation(webapp2.RequestHandler):
         current_link = int(self.request.get('current_link'))
         page_result.put()
         
+        # Fix for synchronizing issue
+        inserted_links = entities.PageResult.query(entities.PageResult.web == user.root_link).count()
+        while inserted_links != current_link:
+            inserted_links = entities.PageResult.query(entities.PageResult.web == user.root_link).count()
+            print inserted_links
+        
         print current_link
         print user.n_links
         
-        if current_link == user.n_links:
+        if current_link >= user.n_links:
+                
             report = entities.Report()
             report.web = user.root_link
             report.validation_type = option
