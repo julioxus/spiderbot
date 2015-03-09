@@ -77,12 +77,11 @@ class QueueValidation(webapp2.RequestHandler):
             user.n_links = len(links)
             user.root_link = root
             
-            current_link = 1
             if user.lock == False:
+                alphaqueue = taskqueue.Queue('alphaqueue')
                 for link in links:
                     #Add the task to the default queue.
-                    taskqueue.add(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'current_link': current_link})
-                    current_link+=1
+                    alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username}),False)
                 user.lock = True
                 user.put()
                 self.redirect('/')
@@ -207,19 +206,19 @@ class Validation(webapp2.RequestHandler):
         page_result.url = f
         page_result.content = content
         page_result.state = state
-        current_link = int(self.request.get('current_link'))
         page_result.put()
         
+        '''
         # Fix for synchronizing issue
         inserted_links = entities.PageResult.query(entities.PageResult.web == user.root_link).count()
         while inserted_links != current_link:
             inserted_links = entities.PageResult.query(entities.PageResult.web == user.root_link).count()
-            print inserted_links
+            #print inserted_links
         
-        print current_link
-        print user.n_links
+        #print current_link
+        #print user.n_links
         
-        if current_link >= user.n_links:
+        if current_link == user.n_links:
                 
             report = entities.Report()
             report.web = user.root_link
@@ -238,10 +237,35 @@ class Validation(webapp2.RequestHandler):
             user.root_link = ''
             user.lock = False
             user.put()
+            
+        '''
       
 class Reports(webapp2.RequestHandler):
     def get(self):
         if self.request.cookies.get("name"):
+            
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()
+            qry = entities.PageResult.query(entities.PageResult.web == user.root_link)
+            
+            if qry.count() == user.n_links:
+                report = entities.Report()
+                report.web = user.root_link
+                #report.validation_type = option
+                report.user = user.name
+                report.results = qry.fetch()
+                
+                report.put()
+                ndb.delete_multi(
+                    entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
+                )
+            
+            # Reset global variables for user
+            user.n_links = 0
+            user.root_link = ''
+            user.lock = False
+            user.put()
+            
             self.response.headers['Content-Type'] = 'text/html'
             reports = entities.Report.query().fetch()
             

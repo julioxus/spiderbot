@@ -115,7 +115,8 @@ def getAllLinks(root,depth,max_pages):
                     aux.append((link,page_type))               
         
         for link in aux:
-            if link[0].endswith('.jpg') or link[0].endswith('.png') or link[0].endswith('.js') or link[0].endswith('.ico'):
+            if link[0].endswith('.jpg') or link[0].endswith('.png') or link[0].endswith('.js') or \
+            link[0].endswith('.ico') or len(link[0]) >= 500:
                     aux.remove(link)
         
         links.extend(aux) 

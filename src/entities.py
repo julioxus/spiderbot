@@ -21,6 +21,6 @@ class User(ndb.Model):
     name = ndb.StringProperty()
     password = ndb.StringProperty()
     email = ndb.StringProperty()
-    n_links = ndb.IntegerProperty(default=0)
+    n_links = ndb.IntegerProperty(default=-1)
     root_link = ndb.StringProperty()
     lock = ndb.BooleanProperty(default=False)
