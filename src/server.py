@@ -154,7 +154,7 @@ class Validation(webapp2.RequestHandler):
                     out += "\nErrors: %s \n" % errors
                     out += "Warnings: %s" % warnings
                     
-                    content += out.replace("\n", "<br />")
+                    content += out
                     
                     if errors == 0:
                         state = 'PASS'
@@ -162,10 +162,10 @@ class Validation(webapp2.RequestHandler):
                         state = 'FAIL'
                     
                 except:
-                    content += out.replace("\n", "<br />")
+                    content += out
                     state = 'ERROR'
                 
-                content += '<br/><br/>'
+                content += '\n\n'
                     
             elif option == 'check_availability':
                 code = validators.checkAvailability(f)
@@ -179,7 +179,7 @@ class Validation(webapp2.RequestHandler):
                     content += 'Error: Invalid URL'
                     state = 'ERROR'
                 
-                content += '<br/><br/>'
+                content += '\n\n'
                     
             elif option == 'val_wcag':
                 try:
@@ -194,7 +194,7 @@ class Validation(webapp2.RequestHandler):
                     content += "Error: Deadline exceeded while waiting for HTTP response"
                     state = 'ERROR'
                 
-                content += '<br/><br/>'
+                content += '\n\n'
                 
             retrys -= 1
         
@@ -207,38 +207,6 @@ class Validation(webapp2.RequestHandler):
         page_result.content = content
         page_result.state = state
         page_result.put()
-        
-        '''
-        # Fix for synchronizing issue
-        inserted_links = entities.PageResult.query(entities.PageResult.web == user.root_link).count()
-        while inserted_links != current_link:
-            inserted_links = entities.PageResult.query(entities.PageResult.web == user.root_link).count()
-            #print inserted_links
-        
-        #print current_link
-        #print user.n_links
-        
-        if current_link == user.n_links:
-                
-            report = entities.Report()
-            report.web = user.root_link
-            report.validation_type = option
-            report.user = user.name
-            qry = entities.PageResult.query(entities.PageResult.web == user.root_link)
-            report.results = qry.fetch()
-            
-            report.put()
-            ndb.delete_multi(
-                entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
-            )
-            
-            # Reset global variables for user
-            user.n_links = 0
-            user.root_link = ''
-            user.lock = False
-            user.put()
-            
-        '''
       
 class Reports(webapp2.RequestHandler):
     def get(self):
@@ -249,22 +217,26 @@ class Reports(webapp2.RequestHandler):
             qry = entities.PageResult.query(entities.PageResult.web == user.root_link)
             
             if qry.count() == user.n_links:
+                
                 report = entities.Report()
                 report.web = user.root_link
                 #report.validation_type = option
                 report.user = user.name
                 report.results = qry.fetch()
-                
                 report.put()
+                
                 ndb.delete_multi(
                     entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
                 )
+                
+                # Reset global variables for user
+                user.n_links = -1
+                user.root_link = ''
+                user.lock = False
+                user.put()
+                time.sleep(2)
+                self.redirect('/reports')
             
-            # Reset global variables for user
-            user.n_links = 0
-            user.root_link = ''
-            user.lock = False
-            user.put()
             
             self.response.headers['Content-Type'] = 'text/html'
             reports = entities.Report.query().fetch()
