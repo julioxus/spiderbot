@@ -128,7 +128,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain):
                 if max_reached:
                     break
         
-        return links
+    return links
 
 def html_decode(s):
     """
