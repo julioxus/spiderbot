@@ -74,7 +74,8 @@ class QueueValidation(webapp2.RequestHandler):
             max_pags = int(max_pags)
             depth = int(depth)
                 
-            links = validators.getAllLinks(root, depth, max_pags)
+            links = validators.getAllLinks(root, depth, max_pags, True)
+            print links
             
             option = self.request.get('optradio')
             

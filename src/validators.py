@@ -73,7 +73,7 @@ def checkAvailability(filename):
         return -1
     
 # Get all links from a root url given a depth scan level
-def getAllLinks(root,depth,max_pages):
+def getAllLinks(root,depth,max_pages,onlyDomain):
     
     links = []
     if not root.endswith('/'):
@@ -92,43 +92,43 @@ def getAllLinks(root,depth,max_pages):
         
         dom =  lxml.html.fromstring(html)
         
-        aux = []
-        
         document_links = dom.xpath('//a/@href | //link/@href')
         css_links = dom.xpath('//*[@rel="stylesheet"]/@href')
         
         for link in document_links: # select the url in href for all a and link tags(links)
             
-            if link in css_links:
-                page_type = 'css'
-            else:
-                page_type = 'html'
-            
-            if link.startswith('http'):
-                if not ((link,page_type) in links) and not ((link,page_type) in aux):
-                    aux.append((link,page_type))
-            else:
-                if link.startswith('/'):
-                    link = link[1:]   
-                link = root + link
-                if not ((link,page_type) in links) and not ((link,page_type) in aux):
-                    aux.append((link,page_type))               
+            if not(link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or \
+            link.endswith('.ico') or link.endswith('.iso') or link.endswith('.mp3') or \
+            len(link) > 450 or ('mailto' in link) or root == link+'/' or '#' in link):
+                       
+                if link in css_links:
+                    page_type = 'css'
+                else:
+                    page_type = 'html'
+                    
+                
+                if link.startswith('http'):
+                    if not ((link,page_type) in links):
+                        if onlyDomain:
+                            if link.startswith(root):
+                                    links.append((link,page_type))
+                        else:
+                            links.append((link,page_type))
+                else:
+                    if link.startswith('/'):
+                        link = link[1:]  
+                    link = root + link
+                    if not ((link,page_type) in links):
+                        links.append((link,page_type))               
+                         
+                while len(links) > max_pages:
+                    links.pop()
+                    max_reached = True
+                    
+                if max_reached:
+                    break
         
-        for link in aux:
-            if link[0].endswith('.jpg') or link[0].endswith('.png') or link[0].endswith('.js') or \
-            link[0].endswith('.ico') or len(link[0]) >= 500:
-                    aux.remove(link)
-        
-        links.extend(aux) 
-                 
-        while len(links) > max_pages:
-            links.pop()
-            max_reached = True
-            
-        if max_reached:
-            break
-    
-    return links
+        return links
 
 def html_decode(s):
     """
