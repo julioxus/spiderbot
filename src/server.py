@@ -226,13 +226,19 @@ class Reports(webapp2.RequestHandler):
             qry = entities.PageResult.query(entities.PageResult.web == user.root_link).order(entities.PageResult.number)
             error_message = ''
             try:
-                if qry.count() == user.n_links:
-                    
-                    report = entities.Report()
-                    report.web = user.root_link
-                    report.validation_type = user.validation_type
-                    report.user = user.name
-                    report.results = qry.fetch()
+                qry.count()
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                
+            if qry.count() == user.n_links:
+                
+                report = entities.Report()
+                report.web = user.root_link
+                report.validation_type = user.validation_type
+                report.user = user.name
+                report.results = qry.fetch()
+                
+                try:
                     report.put()
                     
                     ndb.delete_multi(
@@ -247,9 +253,20 @@ class Reports(webapp2.RequestHandler):
                     user.put()
                     time.sleep(2)
                     self.redirect('/reports')
-            except:
-                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                except:
+                    error_message = 'Error: Unable to update database: too much errors in your website: '+user.root_link
                 
+                    
+                ndb.delete_multi(
+                    entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
+                )
+                
+                # Reset global variables for user
+                user.n_links = -1
+                user.root_link = ''
+                user.validation_type = ''
+                user.lock = False
+                user.put()
                 
             self.response.headers['Content-Type'] = 'text/html'
             reports = entities.Report.query().fetch()
