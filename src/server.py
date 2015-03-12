@@ -86,12 +86,14 @@ class QueueValidation(webapp2.RequestHandler):
             if user.lock == False:
                 alphaqueue = taskqueue.Queue('alphaqueue')
                 number = 0
+                user.lock = True
+                user.put()
+                while(user.root_link == ''):
+                    time.sleep(1)
                 for link in links:
                     #Add the task to the default queue.
                     alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
                     number += 1
-                user.lock = True
-                user.put()
                 self.redirect('/')
             else:
                 self.response.write("You already have pending tasks executing, wait and try again later")
