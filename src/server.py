@@ -11,6 +11,7 @@ import time
 import validators
 import entities
 from google.appengine.ext import ndb
+from webapp2_extras.config import DEFAULT_VALUE
 
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -66,10 +67,12 @@ class QueueValidation(webapp2.RequestHandler):
             root = self.request.get('url')
             max_pags = self.request.get('max_pags')
             depth = self.request.get('depth')
-            onlyDomain = bool(self.request.get("onlyDomain", default_value="False"))
-            print onlyDomain
-            print type(onlyDomain)
-            '''
+            onlyDomain = self.request.get("onlyDomain")
+            if onlyDomain:
+                onlyDomain = True
+            else:
+                onlyDomain = False
+                
             if max_pags == '':
                 max_pags = 50
             if depth == '':
@@ -87,6 +90,7 @@ class QueueValidation(webapp2.RequestHandler):
             user.n_links = len(links)
             user.root_link = root
             user.validation_type = option
+            user.onlyDomain = onlyDomain
             
             if user.lock == False:
                 alphaqueue = taskqueue.Queue('alphaqueue')
@@ -102,7 +106,6 @@ class QueueValidation(webapp2.RequestHandler):
                 self.redirect('/')
             else:
                 self.response.write("You already have pending tasks executing, wait and try again later")
-            '''
         except:
             self.response.write("Error: Invalid URL")
             return None
