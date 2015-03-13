@@ -66,6 +66,10 @@ class QueueValidation(webapp2.RequestHandler):
             root = self.request.get('url')
             max_pags = self.request.get('max_pags')
             depth = self.request.get('depth')
+            onlyDomain = bool(self.request.get("onlyDomain", default_value="False"))
+            print onlyDomain
+            print type(onlyDomain)
+            '''
             if max_pags == '':
                 max_pags = 50
             if depth == '':
@@ -74,7 +78,7 @@ class QueueValidation(webapp2.RequestHandler):
             max_pags = int(max_pags)
             depth = int(depth)
                 
-            links = validators.getAllLinks(root, depth, max_pags, True)
+            links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
             print links
             
             option = self.request.get('optradio')
@@ -98,6 +102,7 @@ class QueueValidation(webapp2.RequestHandler):
                 self.redirect('/')
             else:
                 self.response.write("You already have pending tasks executing, wait and try again later")
+            '''
         except:
             self.response.write("Error: Invalid URL")
             return None

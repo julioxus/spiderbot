@@ -11,9 +11,21 @@ body {
 	margin: auto;
 }
 
+#web_input_form label{
+	margin-left: 10px;
+}
+
 #input_bar input{
 	margin: auto;
 	width: 500px;
+}
+
+#depth{
+	width: 80px;
+}
+
+#max_pags{
+	width: 80px;
 }
 
 #logo{

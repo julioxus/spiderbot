@@ -64,7 +64,7 @@
 		    <input type="text" class="form-control" id="url" name="url"
 		           placeholder="Enter your web page">
 		  </div>
-		  <button type="submit" class="btn btn-default">Go!</button>
+		  <button type="submit" class="btn-lg btn-default">Go!</button>
 		  <br/><br/>
 		  <label class="radio-inline">
 	      	<input value="HTML" type="radio" name="optradio" checked>Validate HTML/XHTML/CSS
@@ -79,14 +79,16 @@
 		  </label>
 		  <br/><br/>
 		  <div class="form-group">
-		    <label class="sr-only" for="depth">Depth level</label>
-		    <input type="number" class="form-control" id="depth" name="depth" 
-		           placeholder="Depth level (default: 1)">
+		    <label for="depth">Depth level</label>
+		    <input type="number" class="form-control" id="depth" name="depth" value="1">
 		  </div>
 		  <div class="form-group">
-		    <label class="sr-only" for="max_pags">Max pages (default: 50)</label>
-		    <input type="number" class="form-control" id="max_pags" name="max_pags" 
-		           placeholder="Max pages (default: 50)">
+		    <label for="max_pags">Max pages</label>
+		    <input type="number" class="form-control" id="max_pags" name="max_pags" value="50">
+		  </div>
+		  <div class="form-group">
+		    <label for="onlyDomain">Only domain</label>
+		    <input type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
 		  </div>
 		</form>
 	</div>
