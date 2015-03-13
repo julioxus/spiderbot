@@ -4,7 +4,7 @@
 from google.appengine.ext import ndb
 
 class PageResult(ndb.Model):
-    web = ndb.StringProperty()
+    user = ndb.StringProperty()
     url = ndb.StringProperty()
     content = ndb.TextProperty()
     state = ndb.StringProperty()

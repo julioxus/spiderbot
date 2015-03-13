@@ -56,6 +56,8 @@
     <div class="container" id="reports_container">
 		<p>Last validation executed by: {{report.user}}</p>
 		<p>Validation type: {{report.validation_type}}</p>
+		<p>Only domain?: {% if report.onlyDomain %} Yes {% else %} No {% endif %}
+		<p>Pages: {{pages}}
 		<p>Date: {{report.date}}</p>
 		<p>Saved at: {{report.time}}</p>
 	</div>

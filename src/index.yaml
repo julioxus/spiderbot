@@ -12,5 +12,10 @@ indexes:
 
 - kind: PageResult
   properties:
+  - name: user
+  - name: number
+
+- kind: PageResult
+  properties:
   - name: web
   - name: number

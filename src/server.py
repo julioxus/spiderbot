@@ -218,7 +218,7 @@ class Validation(webapp2.RequestHandler):
         user = entities.User.query(entities.User.name == username).get()
         
         page_result = entities.PageResult()
-        page_result.web = user.root_link
+        page_result.user = user.name
         page_result.url = f
         page_result.content = content
         page_result.state = state
@@ -231,7 +231,7 @@ class Reports(webapp2.RequestHandler):
             
             username = self.request.cookies.get("name")
             user = entities.User.query(entities.User.name == username).get()
-            qry = entities.PageResult.query(entities.PageResult.web == user.root_link).order(entities.PageResult.number)
+            qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
             error_message = ''
             try:
                 qry.count()
@@ -243,6 +243,7 @@ class Reports(webapp2.RequestHandler):
                 report = entities.Report()
                 report.web = user.root_link
                 report.validation_type = user.validation_type
+                report.onlyDomain = user.onlyDomain
                 report.user = user.name
                 report.results = qry.fetch()
                 
@@ -250,13 +251,14 @@ class Reports(webapp2.RequestHandler):
                     report.put()
                     
                     ndb.delete_multi(
-                        entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
+                        entities.PageResult.query(entities.PageResult.user == user.name).fetch(keys_only=True)
                     )
                     
                     # Reset global variables for user
                     user.n_links = -1
                     user.root_link = ''
                     user.validation_type = ''
+                    user.onlyDomain = None
                     user.lock = False
                     user.put()
                     time.sleep(2)
@@ -266,13 +268,14 @@ class Reports(webapp2.RequestHandler):
                 
                     
                 ndb.delete_multi(
-                    entities.PageResult.query(entities.PageResult.web == user.root_link).fetch(keys_only=True)
+                    entities.PageResult.query(entities.PageResult.user == user.name).fetch(keys_only=True)
                 )
                 
                 # Reset global variables for user
                 user.n_links = -1
                 user.root_link = ''
                 user.validation_type = ''
+                user.onlyDomain = None
                 user.lock = False
                 user.put()
                 
@@ -291,14 +294,17 @@ class ReportViewer(webapp2.RequestHandler):
             report_id = long(self.request.get('id'))
             reports = entities.Report.query().fetch()
             report = ''
+            pages = ''
+            pages = ''
             for r in reports:
                 if r.key.id() == report_id:
                     report = r
                     break
+            pages = len(report.results)
         else:
             self.redirect('/login')
             
-        template_values={'report':report}
+        template_values={'report':report, 'pages':pages}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
         
