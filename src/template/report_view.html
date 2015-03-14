@@ -21,6 +21,35 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
   </head>
+  
+  <script src="static/js/jquery.min.js"></script>
+    <script>
+    
+    var progress = {{progress}};
+    
+    function callAjax() {
+            $.ajax({
+                type: 'GET',
+                url: '/progress',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (data) {
+                	progress = data;
+                }
+            });
+   }
+   
+   
+   $(document).ready(function(){
+	window.setInterval(function(){
+		callAjax()
+	  	console.log(progress);
+	   	var pbar = document.getElementById('pbar');
+	   	pbar.setAttribute("style","width:".concat(progress).concat("%"));
+	},1000);
+   });
+   
+   </script>
 
   <body>
 
@@ -45,6 +74,14 @@
         </div><!--/.nav-collapse -->
       </div>
     </nav>
+    
+    <div class="progress progress-striped active">
+	  <div id="pbar" class="progress-bar" role="progressbar"
+	       aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
+	       style="width: {{progress}}%">
+	    <span class="sr-only"></span>
+	  </div>
+	</div>
 
     <div class="container">
 

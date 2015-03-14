@@ -27,7 +27,14 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         if self.request.cookies.get("name"):
             self.response.headers['Content-Type'] = 'text/html'
-            template_values={}
+            
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()  
+            total_pages = user.n_links
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            progress = int((current_pages * 100)/total_pages)
+            
+            template_values={'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/index.html')
             self.response.write(template.render(template_values))
         else:
@@ -284,7 +291,13 @@ class Reports(webapp2.RequestHandler):
             self.response.headers['Content-Type'] = 'text/html'
             reports = entities.Report.query().fetch()
             
-            template_values={'reports':reports, 'error_message': error_message}
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()  
+            total_pages = user.n_links
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            progress = int((current_pages * 100)/total_pages)
+            
+            template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/reports.html')
             self.response.write(template.render(template_values))
         else:
@@ -306,7 +319,14 @@ class ReportViewer(webapp2.RequestHandler):
         else:
             self.redirect('/login')
             
-        template_values={'report':report, 'pages':pages}
+        
+        username = self.request.cookies.get("name")
+        user = entities.User.query(entities.User.name == username).get()  
+        total_pages = user.n_links
+        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        progress = int((current_pages * 100)/total_pages)
+            
+        template_values={'report':report, 'pages':pages, 'progress':progress}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
         
@@ -323,8 +343,14 @@ class PageViewer(webapp2.RequestHandler):
                     break
         else:
             self.redirect('/login')
-            
-        template_values={'result':report.results[number]}
+        
+        username = self.request.cookies.get("name")
+        user = entities.User.query(entities.User.name == username).get()  
+        total_pages = user.n_links
+        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        progress = int((current_pages * 100)/total_pages)
+        
+        template_values={'result':report.results[number],'progress':progress}
         template = JINJA_ENVIRONMENT.get_template('template/page_view.html')
         self.response.write(template.render(template_values))
         
@@ -335,10 +361,9 @@ class GetScanProgress(webapp2.RequestHandler):
         
         total_pages = user.n_links
         current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-        completed = int((current_pages * 100)/total_pages)
-        completed = 100
+        progress = int((current_pages * 100)/total_pages)
         
-        self.response.write(json.dumps(completed))
+        self.response.write(json.dumps(progress))
     
         
 urls = [('/',MainPage),
