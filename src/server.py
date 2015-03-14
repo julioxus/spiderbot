@@ -12,6 +12,7 @@ import validators
 import entities
 from google.appengine.ext import ndb
 from webapp2_extras.config import DEFAULT_VALUE
+import json
 
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -327,6 +328,19 @@ class PageViewer(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('template/page_view.html')
         self.response.write(template.render(template_values))
         
+class GetScanProgress(webapp2.RequestHandler):
+    def get(self):
+        username = self.request.cookies.get("name")
+        user = entities.User.query(entities.User.name == username).get()
+        
+        total_pages = user.n_links
+        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        completed = int((current_pages * 100)/total_pages)
+        completed = 100
+        
+        self.response.write(json.dumps(completed))
+    
+        
 urls = [('/',MainPage),
         ('/login',login),
         ('/validation',Validation),
@@ -335,6 +349,7 @@ urls = [('/',MainPage),
         ('/viewreport',ReportViewer),
         ('/viewpage',PageViewer),
         ('/logout',logout),
+        ('/progress',GetScanProgress),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
