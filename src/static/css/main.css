@@ -40,10 +40,19 @@ body {
 	border-top-left-radius: 6px;
 }
 
-.report_table{
-	float: left;
-	margin: 10px;
+#report_table{
+	margin-bottom: 30px;
+}
+
+#report_table td, #report_table tr{
 	text-align: center;
+	border: 1px solid;
+}
+
+#report_subtable td, #report_subtable tr{
+	margin: auto;
+	width: 700px;
+	padding: 10px;
 }
 
 #report{
@@ -60,7 +69,7 @@ body {
 	width: 800px;
 }
 
-.report_results_table tr,th,td{
+.report_results_table tr, .report_results_table th, .report_results_table td{
 	border: 1px solid;
 	text-align: center;
 	padding: 10px;

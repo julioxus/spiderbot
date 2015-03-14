@@ -246,6 +246,7 @@ class Reports(webapp2.RequestHandler):
                 report.onlyDomain = user.onlyDomain
                 report.user = user.name
                 report.results = qry.fetch()
+                report.pages = len(report.results)
                 
                 try:
                     report.put()

@@ -16,6 +16,7 @@ class Report(ndb.Model):
     user = ndb.StringProperty()
     onlyDomain = ndb.BooleanProperty()
     results = ndb.StructuredProperty(PageResult, repeated=True)
+    pages = ndb.IntegerProperty()
     date = ndb.DateProperty(auto_now=True)
     time = ndb.TimeProperty(auto_now=True)
 
