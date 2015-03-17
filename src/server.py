@@ -203,24 +203,39 @@ class Validation(webapp2.RequestHandler):
                     state = 'ERROR'
                 
                 content += '\n\n'
-                    
+                
             elif option == 'WCAG 2.0':
-                try:
+                #try:
                     result = validators.validateWCAG(f)
+                    
+                    parse_dic = {'errors': [], 'warnings': [], }
+                    
+                    error_line_list = result.xpath('//li[@class="msg_err"]/em//text()')
+                    
+                    if len(error_line_list) == 0:
+                        parse_dic['state'] = 'FAIL'
+                    else:
+                        parse_dic['state'] = 'PASS'
+                        
+                    for line in error_line_list:
+                        parse_dic['errors'].append(line)
+                        
+                    
+                    '''
                     if result:
                         content += result
                         state = 'OK'
                     else:
                         content += "Error parsing URL"
                         state = 'ERROR'
-                except:
-                    content += "Error: Deadline exceeded while waiting for HTTP response"
-                    state = 'ERROR'
-                
-                content += '\n\n'
+                    '''
+                #except:
+                #    content += "Error: Deadline exceeded while waiting for HTTP response"
+                #    state = 'ERROR'
+                #    content += '\n\n'
                 
             retrys -= 1
-        
+        '''
         username = self.request.get("username")
         number = int(self.request.get("number"))
         user = entities.User.query(entities.User.name == username).get()
@@ -232,6 +247,7 @@ class Validation(webapp2.RequestHandler):
         page_result.state = state
         page_result.number = number;
         page_result.put()
+        '''
       
 class Reports(webapp2.RequestHandler):
     def get(self):

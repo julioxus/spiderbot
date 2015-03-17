@@ -4,6 +4,7 @@
 from google.appengine.api import urlfetch
 import urllib
 import json
+from lxml import etree
 import lxml.html
 import urllib2
 
@@ -44,7 +45,7 @@ def validate(filename,page_type):
 
     
 def validateWCAG(filename):
-    urlfetch.set_default_fetch_deadline(60)
+    urlfetch.set_default_fetch_deadline(120)
     code = checkAvailability(filename)
     if code >= 200 and code < 300:
         payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'html'}
@@ -52,7 +53,8 @@ def validateWCAG(filename):
         url = wcag_validator_url + '/?' + encoded_args 
         print url
         r = urllib2.urlopen(url)
-        result = r.read()
+        text = r.read()
+        result = lxml.html.document_fromstring(text)
         return result
     else:
         return ''
@@ -98,8 +100,9 @@ def getAllLinks(root,depth,max_pages,onlyDomain):
         for link in document_links: # select the url in href for all a and link tags(links)
             
             if not(link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or \
-            link.endswith('.ico') or link.endswith('.iso') or link.endswith('.mp3') or \
-            len(link) > 450 or ('mailto' in link) or root == link+'/' or '#' in link):
+            link.endswith('.ico') or link.endswith('.gif') or link.endswith('.iso') or link.endswith('.mp3') or \
+            link.endswith('.pdf') or  link.endswith('.xml') or len(link) > 450 or ('mailto' in link) or \
+            root == link+'/' or '#' in link) or ('JavaScript:void(0)' in link) :
                        
                 if link in css_links:
                     page_type = 'css'
