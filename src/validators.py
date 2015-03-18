@@ -55,7 +55,26 @@ def validateWCAG(filename):
         r = urllib2.urlopen(url)
         text = r.read()
         result = lxml.html.document_fromstring(text)
-        return result
+        
+        parse_dic = {'state': '', 'errors': {'lines': [], 'messages': []}, 'codes': [],\
+                                 'warnings': {'lines': [], 'messages': [], 'codes': []}}
+                    
+        parse_dic['errors']['lines'] = result.xpath('//li[@class="msg_err"]/em//text()')
+        parse_dic['errors']['messages'] = result.xpath('//li[@class="msg_err"]/span/a[@target]//text()')
+        parse_dic['errors']['codes'] = result.xpath('//li[@class="msg_err"]//code[@class="input"]//text()')
+        
+        parse_dic['warnings']['lines'] = result.xpath('//li[@class="msg_info"]/em//text()')
+        parse_dic['warnings']['messages'] = result.xpath('//li[@class="msg_info"]/span/a[@target]//text()')
+        parse_dic['warnings']['codes'] = result.xpath('//li[@class="msg_info"]//code[@class="input"]//text()')
+        
+        
+        if len(parse_dic['errors']['lines']) == 0:
+            parse_dic['state'] = 'PASS'
+        else:
+            parse_dic['state'] = 'FAIL'
+        
+        return parse_dic
+        
     else:
         return ''
     

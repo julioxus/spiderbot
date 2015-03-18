@@ -205,37 +205,40 @@ class Validation(webapp2.RequestHandler):
                 content += '\n\n'
                 
             elif option == 'WCAG 2.0':
-                #try:
+                try:
+                    out = ''
                     result = validators.validateWCAG(f)
                     
-                    parse_dic = {'errors': [], 'warnings': [], }
+                    state = result['state']
+                    errors = len(result['errors']['lines'])
+                    warnings = len(result['warnings']['lines'])
                     
-                    error_line_list = result.xpath('//li[@class="msg_err"]/em//text()')
-                    
-                    if len(error_line_list) == 0:
-                        parse_dic['state'] = 'FAIL'
-                    else:
-                        parse_dic['state'] = 'PASS'
+                    for i in range(0,errors):
+                        line = result['errors']['lines'][i]
+                        message = result['errors']['messages'][i]
+                        code = result['errors']['codes'][i]
+                        out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
+                        {'line': line, 'message': message, 'code': code}
                         
-                    for line in error_line_list:
-                        parse_dic['errors'].append(line)
+                    for i in range(0,warnings):
+                        line = result['warnings']['lines'][i]
+                        message = result['warnings']['messages'][i]
+                        code = result['warnings']['codes'][i]
+                        out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
+                        {'line': line, 'message': message, 'code': code}                      
                         
+                    out += "\nErrors: %s \n" % errors
+                    out += "Warnings: %s" % warnings
                     
-                    '''
-                    if result:
-                        content += result
-                        state = 'OK'
-                    else:
-                        content += "Error parsing URL"
-                        state = 'ERROR'
-                    '''
-                #except:
-                #    content += "Error: Deadline exceeded while waiting for HTTP response"
-                #    state = 'ERROR'
-                #    content += '\n\n'
+                    content += out
+                    
+                except:
+                    content += "Error: Deadline exceeded while waiting for HTTP response"
+                    state = 'ERROR'
+                    content += '\n\n'
                 
             retrys -= 1
-        '''
+        
         username = self.request.get("username")
         number = int(self.request.get("number"))
         user = entities.User.query(entities.User.name == username).get()
@@ -247,7 +250,7 @@ class Validation(webapp2.RequestHandler):
         page_result.state = state
         page_result.number = number;
         page_result.put()
-        '''
+        
       
 class Reports(webapp2.RequestHandler):
     def get(self):
