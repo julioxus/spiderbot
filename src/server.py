@@ -90,9 +90,12 @@ class QueueValidation(webapp2.RequestHandler):
             depth = int(depth)
                 
             links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
-            print links
             
             option = self.request.get('optradio')
+            
+            for link in links:
+                if (option == 'WCAG 2.0' and link[1] == 'css'):
+                    links.remove(link)
             
             user = entities.User.query(entities.User.name == username).get()
             user.n_links = len(links)
@@ -224,7 +227,7 @@ class Validation(webapp2.RequestHandler):
                         line = result['warnings']['lines'][i]
                         message = result['warnings']['messages'][i]
                         code = result['warnings']['codes'][i]
-                        out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
+                        out += "Warning: %(line)s %(message)s \n %(code)s \n\n" % \
                         {'line': line, 'message': message, 'code': code}                      
                         
                     out += "\nErrors: %s \n" % errors
