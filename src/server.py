@@ -93,9 +93,12 @@ class QueueValidation(webapp2.RequestHandler):
             
             option = self.request.get('optradio')
             
-            for link in links:
-                if (option == 'WCAG 2.0' and link[1] == 'css'):
-                    links.remove(link)
+            i = 0
+            while i < len(links):
+                if (option == 'WCAG 2.0' and links[i][1] == 'css'):
+                    del links[i]
+                    i = -1
+                i+=1
             
             user = entities.User.query(entities.User.name == username).get()
             user.n_links = len(links)
@@ -236,7 +239,7 @@ class Validation(webapp2.RequestHandler):
                     content += out
                     
                 except:
-                    content += "Error: Deadline exceeded while waiting for HTTP response"
+                    content += "Error parsing URL"
                     state = 'ERROR'
                     content += '\n\n'
                 

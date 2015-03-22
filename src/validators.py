@@ -45,7 +45,7 @@ def validate(filename,page_type):
 
     
 def validateWCAG(filename):
-    urlfetch.set_default_fetch_deadline(120)
+    urlfetch.set_default_fetch_deadline(60)
     code = checkAvailability(filename)
     if code >= 200 and code < 300:
         payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'html'}
