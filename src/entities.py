@@ -2,12 +2,14 @@
 # -⁻- coding: UTF-8 -*-
 
 from google.appengine.ext import ndb
+from google.appengine.ext.db import IntegerProperty
 
 class PageResult(ndb.Model):
     user = ndb.StringProperty()
     url = ndb.StringProperty()
     content = ndb.TextProperty()
     state = ndb.StringProperty()
+    errors = ndb.IntegerProperty()
     number = ndb.IntegerProperty()
     
 class Report(ndb.Model):
@@ -17,6 +19,9 @@ class Report(ndb.Model):
     onlyDomain = ndb.BooleanProperty()
     results = ndb.StructuredProperty(PageResult, repeated=True)
     pages = ndb.IntegerProperty()
+    error_pages = ndb.IntegerProperty()
+    errors = ndb.IntegerProperty()
+    distinct_errors = IntegerProperty()
     date = ndb.DateProperty(auto_now=True)
     time = ndb.TimeProperty(auto_now=True)
 

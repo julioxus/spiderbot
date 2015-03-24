@@ -141,12 +141,14 @@ class Validation(webapp2.RequestHandler):
                 content += 'Error: ' + e
                 state = 'ERROR'
             
+            errors = 0
+            warnings = 0
+            list_errors = []
+            
             option = self.request.get('optradio')
             
             if option == 'HTML':
                 out = ''
-                errors = 0
-                warnings = 0
         
                 result = ''
                 try:
@@ -163,10 +165,10 @@ class Validation(webapp2.RequestHandler):
                         if errorcount > 0:
                             for msg in result['cssvalidation']['errors']:
                                 out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
+                                list_errors.append("%(context)s %(message)s" % msg)
                         if warningcount > 0:
                             for msg in result['cssvalidation']['warnings']:
                                 out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
-                        
                         errors += errorcount
                         warnings += warningcount
                     else:
@@ -177,6 +179,7 @@ class Validation(webapp2.RequestHandler):
                                 out += "%(type)s: %(message)s \n" % msg
                             if msg['type'] == 'error':
                                 errors += 1
+                                list_errors.append("%(message)s" % msg)
                             else:
                                 warnings += 1
                     
@@ -204,6 +207,7 @@ class Validation(webapp2.RequestHandler):
                 elif code != -1:
                     content += str(code) + '\nRequest FAILED'
                     state = 'FAIL'
+                    errors+=1
                 else:
                     content += 'Error parsing URL'
                     state = 'ERROR'
@@ -225,6 +229,7 @@ class Validation(webapp2.RequestHandler):
                         code = result['errors']['codes'][i]
                         out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
                         {'line': line, 'message': message, 'code': code}
+                        list_errors.append("%s" % message)
                         
                     for i in range(0,warnings):
                         line = result['warnings']['lines'][i]
@@ -239,7 +244,7 @@ class Validation(webapp2.RequestHandler):
                     content += out
                     
                 except:
-                    content += "Error parsing URL"
+                    content += "Achecker service not working properly"
                     state = 'ERROR'
                     content += '\n\n'
                 
@@ -254,7 +259,8 @@ class Validation(webapp2.RequestHandler):
         page_result.url = f
         page_result.content = content
         page_result.state = state
-        page_result.number = number;
+        page_result.errors = errors
+        page_result.number = number
         page_result.put()
         
       
@@ -280,6 +286,15 @@ class Reports(webapp2.RequestHandler):
                 report.user = user.name
                 report.results = qry.fetch()
                 report.pages = len(report.results)
+                
+                error_pages = 0
+                errors = 0
+                for result in report.results:
+                    if result.state == 'FAIL':
+                        error_pages+=1
+                    errors += result.errors
+                report.error_pages = error_pages
+                report.errors = errors
                 
                 try:
                     report.put()
