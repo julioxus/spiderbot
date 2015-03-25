@@ -10,6 +10,7 @@ class PageResult(ndb.Model):
     content = ndb.TextProperty()
     state = ndb.StringProperty()
     errors = ndb.IntegerProperty()
+    list_errors = ndb.TextProperty()
     number = ndb.IntegerProperty()
     
 class Report(ndb.Model):

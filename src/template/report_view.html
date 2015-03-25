@@ -97,6 +97,9 @@
 		<p>Pages: {{pages}}
 		<p>Date: {{report.date}}</p>
 		<p>Saved at: {{report.time}}</p>
+		{% for error in list_errors %}
+			<p>{{error}}</p>
+		{% endfor %}
 	</div>
 	<table class="report_results_table">
 	<tr>

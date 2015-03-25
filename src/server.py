@@ -165,7 +165,7 @@ class Validation(webapp2.RequestHandler):
                         if errorcount > 0:
                             for msg in result['cssvalidation']['errors']:
                                 out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
-                                list_errors.append("%(context)s %(message)s" % msg)
+                                list_errors.append("%(message)s" % msg)
                         if warningcount > 0:
                             for msg in result['cssvalidation']['warnings']:
                                 out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
@@ -261,6 +261,7 @@ class Validation(webapp2.RequestHandler):
         page_result.state = state
         page_result.errors = errors
         page_result.number = number
+        page_result.list_errors = json.dumps(list_errors)
         page_result.put()
         
       
@@ -349,8 +350,6 @@ class ReportViewer(webapp2.RequestHandler):
             report_id = long(self.request.get('id'))
             reports = entities.Report.query().fetch()
             report = ''
-            pages = ''
-            pages = ''
             for r in reports:
                 if r.key.id() == report_id:
                     report = r
@@ -358,7 +357,20 @@ class ReportViewer(webapp2.RequestHandler):
             pages = len(report.results)
         else:
             self.redirect('/login')
-            
+        list_errors = []
+        for result in report.results:    
+            list_errors.extend(json.loads(result.list_errors))
+
+        # Delete repeated elements in the list
+        i = 0
+        while i < len(list_errors)-1:
+            j = i+1
+            while j < len(list_errors):
+                if (list_errors[i] == list_errors[j]):
+                    del list_errors[j]
+                    j = i
+                j+=1
+            i+=1
         
         username = self.request.cookies.get("name")
         user = entities.User.query(entities.User.name == username).get()  
@@ -366,7 +378,7 @@ class ReportViewer(webapp2.RequestHandler):
         current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
             
-        template_values={'report':report, 'pages':pages, 'progress':progress}
+        template_values={'report':report, 'list_errors': list_errors, 'pages':pages, 'progress':progress}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
         
