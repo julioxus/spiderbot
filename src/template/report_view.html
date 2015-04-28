@@ -97,16 +97,41 @@
 		<p>Pages: {{pages}}
 		<p>Date: {{report.date}}</p>
 		<p>Saved at: {{report.time}}</p>
-		{% for error in list_errors %}
-			<p>{{error}}</p>
-		{% endfor %}
 	</div>
+	
+			<table id="errorTable">
+			<caption>Common errors</caption>
+			<tr>
+				<th>Message</th>
+				<th>Lines and pages</th>
+			</tr>
+		{% for error in list_errors %}
+			<tr>
+				<td>{{error[0]}}</td>
+				<td>
+					<table id="errorSubtable">
+						<tr>
+							<th>Line</th>
+							<th>Page</th>
+						</tr>
+						{% for i in range(error[1]|length) %}
+						<tr>
+							<td>{{error[1][i]}}</td>
+							<td>{{error[2][i]}}</td>
+						</tr>
+						{% endfor %}
+					</table>
+				</td>
+			</tr>
+		{% endfor %}
+		</table>
+	
 	<table class="report_results_table">
 	<tr>
 		<th>URL</th>
 		<th>Result</th>
 		<th>Details</th>
-		</tr>
+	</tr>
 	{% for result in report.results %}
 		<tr>
 			<td><a href="{{result.url}}">{{result.url}}</a></td>

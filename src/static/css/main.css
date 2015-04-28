@@ -89,3 +89,25 @@ body {
 	float: right;
 	margin-top: 8px;
 }
+
+#errorTable tr, #errorTable th, #errorTable td{
+	border: 1px solid;
+	text-align: center;
+	padding: 10px;
+}
+
+#errorSubtable tr, #errorSubtable th, #errorSubtable td{
+	border: 1px solid;
+	text-align: center;
+	padding: 10px;
+}
+
+#errorSubtable{
+	margin: auto;
+}
+
+#errorTable{
+	margin: auto;
+	margin-top: 20px;
+	width: 800px;
+}
