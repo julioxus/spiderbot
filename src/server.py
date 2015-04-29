@@ -165,7 +165,8 @@ class Validation(webapp2.RequestHandler):
                         if errorcount > 0:
                             for msg in result['cssvalidation']['errors']:
                                 out += "error: line %(line)d: %(type)s: %(context)s %(message)s \n" % msg
-                                list_errors.append(["%(message)s" % msg, ["%(line)d" % msg], [f]])
+                                if not ["%(message)s" % msg, ["%(line)d" % msg], [f]] in list_errors:
+                                    list_errors.append(["%(message)s" % msg, ["%(line)d" % msg], [f]])
                         if warningcount > 0:
                             for msg in result['cssvalidation']['warnings']:
                                 out += "warning: line %(line)d: %(type)s: %(message)s \n" % msg
@@ -179,7 +180,8 @@ class Validation(webapp2.RequestHandler):
                                 out += "%(type)s: %(message)s \n" % msg
                             if msg['type'] == 'error':
                                 errors += 1
-                                list_errors.append(["%(message)s" % msg, ["%(line)d" % msg], [f]])
+                                if not ["%(message)s" % msg, ["%(lastLine)d" % msg], [f]] in list_errors:
+                                        list_errors.append(["%(message)s" % msg, ["%(lastLine)d" % msg], [f]])
                             else:
                                 warnings += 1
                     
@@ -229,7 +231,8 @@ class Validation(webapp2.RequestHandler):
                         code = result['errors']['codes'][i]
                         out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
                         {'line': line, 'message': message, 'code': code}
-                        list_errors.append(["%s" % message, [line], [f]])
+                        if not ["%s" % message, [line], [f]] in list_errors:
+                            list_errors.append(["%s" % message, [line], [f]])
                         
                     for i in range(0,warnings):
                         line = result['warnings']['lines'][i]
