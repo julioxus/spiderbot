@@ -129,4 +129,7 @@ body {
     cursor:pointer;
     overflow: hidden;
     outline:none;
+    background-image: url("../images/green_arrow_down.png");
+    background-position: left 18px;
+    text-indent: 30px;
 }

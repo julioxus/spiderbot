@@ -184,18 +184,22 @@
   	$("#errorsTitle").click(function(){
   		if ($(".errorTable").is(":visible")){
   			$(".errorTable").hide(400);
+  			$(this).css("background-image", "url('static/images/green_arrow_right.png')");
   		}
   		else{
   			$(".errorTable").show(400);
+  			$(this).css("background-image", "url('static/images/green_arrow_down.png')");
   		}
   	});
   	
   	$("#reportResultsTitle").click(function(){
   		if ($(".report_results_table").is(":visible")){
   			$(".report_results_table").hide(400);
+  			$(this).css("background-image", "url('static/images/green_arrow_right.png')");
   		}
   		else{
   			$(".report_results_table").show(400);
+  			$(this).css("background-image", "url('static/images/green_arrow_down.png')");
   		}
   	});
   	
