@@ -98,48 +98,75 @@
 		<p>Date: {{report.date}}</p>
 		<p>Saved at: {{report.time}}</p>
 	</div>
-	
-			<table id="errorTable">
-			<caption>Common errors</caption>
-			<tr>
-				<th>Message</th>
-				<th>Lines and pages</th>
-			</tr>
-		{% for error in list_errors %}
-			<tr>
-				<td>{{error[0]}}</td>
-				<td>
-					<table id="errorSubtable">
-						<tr>
-							<th>Line</th>
-							<th>Page</th>
-						</tr>
-						{% for i in range(error[1]|length) %}
-						<tr>
-							<td>{{error[1][i]}}</td>
-							<td>{{error[2][i]}}</td>
-						</tr>
-						{% endfor %}
-					</table>
-				</td>
-			</tr>
-		{% endfor %}
-		</table>
-	
-	<table class="report_results_table">
-	<tr>
-		<th>URL</th>
-		<th>Result</th>
-		<th>Details</th>
-	</tr>
-	{% for result in report.results %}
+	<div id ="errorTableContainer">
+		<button class="buttonTitle" id="errorsTitle"><h3>Common errors</h3></button>
+		<table class="errorTable">
 		<tr>
-			<td><a href="{{result.url}}">{{result.url}}</a></td>
-			<td>{{result.state}}</td>
-			<td><a href="viewpage?id={{report.key.id()}}&number={{result.number}}"><img id="analyze-img" src="static/images/analyze-data.png"/></a></td>
+			<th>Message</th>
+			<th>Lines and pages</th>
+		</tr>
+	{% for error in list_errors %}
+		<tr>
+			<td>{{error[0]}}</td>
+			<td>
+				<table id="errorSubtable{{loop.index}}" class="errorSubtable">
+					<tr>
+						<th>Line</th>
+						<th>Page</th>
+					</tr>
+					{% for i in range(error[1]|length) %}
+					<tr>
+						<td>{{error[1][i]}}</td>
+						<td>{{error[2][i]}}</td>
+					</tr>
+					{% endfor %}
+				</table>
+				<button id="show{{loop.index}}" class="btn btn-info">Show</button>
+				<script>
+				$(document).ready(function(){
+					$("#show{{loop.index}}").click(function(){
+						if ($("#errorSubtable{{loop.index}}").is(":visible")){
+					        $("#errorSubtable{{loop.index}}").hide(400);
+					        $(this).attr("class","btn btn-info");
+					        $(this).text("Show");
+					    }
+					    else{
+					    	$("#errorSubtable{{loop.index}}").show(400);
+					    	$(this).attr("class","btn btn-danger");
+					        $(this).text("Hide");
+					    }
+				    });
+				});
+				</script>
+			</td>
 		</tr>
 	{% endfor %}
 	</table>
+		</div>
+	
+	<div id="reportResultsContainer">
+		<button class="buttonTitle" id="reportResultsTitle"><h3>Analysis by web documents</h3></button>
+		<table class="report_results_table">
+		<tr>
+			<th>URL</th>
+			<th>Result</th>
+			<th>Details</th>
+		</tr>
+		{% for result in report.results %}
+			<tr>
+				<td><a href="{{result.url}}">{{result.url}}</a></td>
+				{% if result.state=="PASS" %}
+					<td><span style="color: green">{{result.state}}</span></td>
+				{% elif result.state=="FAIL" %}
+					<td><span style="color: orange">{{result.state}}</span></td>
+				{% elif result.state=="ERROR" %}
+					<td><span style="color: red">{{result.state}}</span></td>
+				{% endif %}
+				<td><a href="viewpage?id={{report.key.id()}}&number={{result.number}}"><img id="analyze-img" src="static/images/analyze-data.png"/></a></td>
+			</tr>
+		{% endfor %}
+		</table>
+	</div>
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
@@ -149,4 +176,30 @@
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
     <script src="static/js/ie10-viewport-bug-workaround.js"></script>
   </body>
+  
+  <script>
+  $(document).ready(function(){
+  	$(".errorSubtable").hide();
+  	
+  	$("#errorsTitle").click(function(){
+  		if ($(".errorTable").is(":visible")){
+  			$(".errorTable").hide(400);
+  		}
+  		else{
+  			$(".errorTable").show(400);
+  		}
+  	});
+  	
+  	$("#reportResultsTitle").click(function(){
+  		if ($(".report_results_table").is(":visible")){
+  			$(".report_results_table").hide(400);
+  		}
+  		else{
+  			$(".report_results_table").show(400);
+  		}
+  	});
+  	
+  });
+  </script>
+  
 </html>

@@ -65,7 +65,6 @@ body {
 
 .report_results_table{
 	margin: auto;
-	margin-top: 20px;
 	width: 800px;
 }
 
@@ -73,6 +72,12 @@ body {
 	border: 1px solid;
 	text-align: center;
 	padding: 10px;
+}
+
+#reportResultsContainer{
+	margin: auto;
+	margin-top: 20px;
+	margin-left: 20px;
 }
 
 #analyze-img{
@@ -90,24 +95,38 @@ body {
 	margin-top: 8px;
 }
 
-#errorTable tr, #errorTable th, #errorTable td{
+.errorTable tr, .errorTable th, .errorTable td{
 	border: 1px solid;
 	text-align: center;
 	padding: 10px;
 }
 
-#errorSubtable tr, #errorSubtable th, #errorSubtable td{
+.errorSubtable tr, .errorSubtable th, .errorSubtable td{
 	border: 1px solid;
 	text-align: center;
 	padding: 10px;
 }
 
-#errorSubtable{
+.errorSubtable{
 	margin: auto;
+	margin-bottom: 10px;
 }
 
-#errorTable{
+#errorTableContainer{
 	margin: auto;
 	margin-top: 20px;
+	margin-left: 20px;
+}
+.errorTable{
+	margin: auto;
 	width: 800px;
+}
+
+.buttonTitle{
+	background-color: Transparent;
+    background-repeat:no-repeat;
+    border: none;
+    cursor:pointer;
+    overflow: hidden;
+    outline:none;
 }
