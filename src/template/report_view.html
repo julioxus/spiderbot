@@ -68,14 +68,16 @@
           <ul class="nav navbar-nav">
             <li><a href="/">Home</a></li>
             <li class="active"><a href="/reports">Reports</a></li>
+            <li><a href="/rankings">Rankings</a></li>
             <li><a href="#about">About</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>
+          <input id="button-logout" name="button-logout" type="button" value="Log Out" onclick="location.href='/logout';" class="btn btn-warning" />
         </div><!--/.nav-collapse -->
       </div>
     </nav>
     
-    <div class="progress progress-striped active">
+    <div id="progress-bar" class="progress progress-striped active">
 	  <div id="pbar" class="progress-bar" role="progressbar"
 	       aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
 	       style="width: {{progress}}%">
@@ -91,12 +93,18 @@
 
     </div><!-- /.container -->
     <div class="container" id="reports_container">
-		<p>Last validation executed by: {{report.user}}</p>
 		<p>Validation type: {{report.validation_type}}</p>
-		<p>Only domain?: {% if report.onlyDomain %} Yes {% else %} No {% endif %}
-		<p>Pages: {{pages}}
+		<p>Only domain?: {% if report.onlyDomain %} Yes {% else %} No {% endif %}</p>
+		<p>Pages: {{pages}}</p>
+		<br/>
+		<p>Pages with errors: {{report.error_pages}}</p>
+		<p>Total errors: {{report.errors}}</p>
+		<p>Distinct errors: {{list_errors|length}}</p>
+		<br/>
 		<p>Date: {{report.date}}</p>
 		<p>Saved at: {{report.time}}</p>
+		<br/><br/>
+		<p>Validation executed by: {{report.user}}</p>
 	</div>
 	<div id ="errorTableContainer">
 		<button class="buttonTitle" id="errorsTitle"><h3>Common errors</h3></button>
@@ -117,7 +125,7 @@
 					{% for i in range(error[1]|length) %}
 					<tr>
 						<td>{{error[1][i]}}</td>
-						<td>{{error[2][i]}}</td>
+						<td><a href="{{error[2][i]}}">{{error[2][i]}}</a></td>
 					</tr>
 					{% endfor %}
 				</table>

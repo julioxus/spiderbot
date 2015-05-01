@@ -38,6 +38,18 @@ body {
 	border: 1px solid;
 	padding: 40px;
 	border-top-left-radius: 6px;
+	background-image: url("../images/gold-medal.png");
+	background-repeat: no-repeat;
+	background-size: 300px;
+	background-position: 400px;
+}
+
+#reports_main_container{
+	width: 800px;
+	margin: auto;
+	border: 1px solid;
+	padding: 40px;
+	border-top-left-radius: 6px;
 }
 
 #report_table{
@@ -132,4 +144,9 @@ body {
     background-image: url("../images/green_arrow_down.png");
     background-position: left 18px;
     text-indent: 30px;
+}
+
+#progress-bar{
+	position: fixed;
+	width: 100%;
 }

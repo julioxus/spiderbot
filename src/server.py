@@ -128,7 +128,7 @@ class Validation(webapp2.RequestHandler):
     def post(self):
         
         state = 'ERROR'
-        retrys = 2
+        retrys = 5
         
         while retrys > 0 and state == 'ERROR':
             
@@ -276,6 +276,7 @@ class Reports(webapp2.RequestHandler):
             user = entities.User.query(entities.User.name == username).get()
             qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
             error_message = ''
+            list_errors = []
             try:
                 qry.count()
             except:
@@ -294,11 +295,28 @@ class Reports(webapp2.RequestHandler):
                 error_pages = 0
                 errors = 0
                 for result in report.results:
-                    if result.state == 'FAIL':
+                    if result.state == 'FAIL' or result.state == 'ERROR':
                         error_pages+=1
                     errors += result.errors
+                    
+                    list_errors.extend(json.loads(result.list_errors))
+        
+                    # Delete repeated elements in the list
+                    i = 0
+                    while i < len(list_errors)-1:
+                        j = i+1
+                        while j < len(list_errors):
+                            if (list_errors[i][0] == list_errors[j][0]):
+                                list_errors[i][1].append(list_errors[j][1][0])
+                                list_errors[i][2].append(list_errors[j][2][0])
+                                del list_errors[j]
+                                j = i
+                            j+=1
+                        i+=1
+                    
                 report.error_pages = error_pages
                 report.errors = errors
+                report.list_errors = json.dumps(list_errors);
                 
                 try:
                     report.put()
@@ -317,7 +335,7 @@ class Reports(webapp2.RequestHandler):
                     time.sleep(2)
                     self.redirect('/reports')
                 except:
-                    error_message = 'Error: Unable to update database: too much errors in your website: '+user.root_link
+                    error_message = 'Error: Unable to update database: too many errors in your website: '+user.root_link
                 
                     
                 ndb.delete_multi(
@@ -360,22 +378,8 @@ class ReportViewer(webapp2.RequestHandler):
             pages = len(report.results)
         else:
             self.redirect('/login')
-        list_errors = []
-        for result in report.results:    
-            list_errors.extend(json.loads(result.list_errors))
-
-        # Delete repeated elements in the list
-        i = 0
-        while i < len(list_errors)-1:
-            j = i+1
-            while j < len(list_errors):
-                if (list_errors[i][0] == list_errors[j][0]):
-                    list_errors[i][1].append(list_errors[j][1][0])
-                    list_errors[i][2].append(list_errors[j][2][0])
-                    del list_errors[j]
-                    j = i
-                j+=1
-            i+=1
+        list_errors = json.loads(report.list_errors)
+        
         
         username = self.request.cookies.get("name")
         user = entities.User.query(entities.User.name == username).get()  
@@ -421,6 +425,12 @@ class GetScanProgress(webapp2.RequestHandler):
         progress = int((current_pages * 100)/total_pages)
         
         self.response.write(json.dumps(progress))
+        
+class Rankings(webapp2.RequestHandler):
+    def get(self):
+        template_values={}
+        template = JINJA_ENVIRONMENT.get_template('template/rankings.html')
+        self.response.write(template.render(template_values))
     
         
 urls = [('/',MainPage),
@@ -432,6 +442,7 @@ urls = [('/',MainPage),
         ('/viewpage',PageViewer),
         ('/logout',logout),
         ('/progress',GetScanProgress),
+        ('/rankings',Rankings),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
