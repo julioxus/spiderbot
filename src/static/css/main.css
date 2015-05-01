@@ -44,6 +44,13 @@ body {
 	background-position: 400px;
 }
 
+#rankingPositionNumber{
+	position: relative;
+	left: 490px;
+	bottom: 230px;
+	font-size: 80;
+}
+
 #reports_main_container{
 	width: 800px;
 	margin: auto;

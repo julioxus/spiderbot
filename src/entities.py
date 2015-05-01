@@ -23,6 +23,7 @@ class Report(ndb.Model):
     error_pages = ndb.IntegerProperty()
     errors = ndb.IntegerProperty()
     list_errors = ndb.TextProperty()
+    ranking_position = ndb.IntegerProperty();
     date = ndb.DateProperty(auto_now=True)
     time = ndb.TimeProperty(auto_now=True)
 

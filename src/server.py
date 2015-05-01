@@ -133,7 +133,7 @@ class Validation(webapp2.RequestHandler):
     def post(self):
         
         state = 'ERROR'
-        retrys = 5
+        retrys = 4
         
         while retrys > 0 and state == 'ERROR':
             
@@ -354,7 +354,21 @@ class Reports(webapp2.RequestHandler):
                     user.put()
                     
                 reports = entities.Report.query().fetch()
-            
+                
+                distinct_errors = []
+                for r in reports:
+                    distinct_errors.append(len(json.loads(r.list_errors)))
+                
+                distinct_errors.sort()
+                print distinct_errors
+                
+                for i in range(0,len(reports)):
+                    for j in range(0,len(distinct_errors)):
+                        if len(json.loads(reports[i].list_errors)) == distinct_errors[j]:
+                            reports[i].ranking_position = position = j+1
+                            reports[i].put()
+                
+                
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
                 total_pages = user.n_links
