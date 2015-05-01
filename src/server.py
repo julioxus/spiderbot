@@ -27,16 +27,21 @@ class MainPage(webapp2.RequestHandler):
     def get(self):
         if self.request.cookies.get("name"):
             self.response.headers['Content-Type'] = 'text/html'
-            
-            username = self.request.cookies.get("name")
-            user = entities.User.query(entities.User.name == username).get()  
-            total_pages = user.n_links
-            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-            progress = int((current_pages * 100)/total_pages)
+            progress = 0
+            try:
+                username = self.request.cookies.get("name")
+                user = entities.User.query(entities.User.name == username).get()  
+                total_pages = user.n_links
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
+                
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
             
             template_values={'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/index.html')
             self.response.write(template.render(template_values))
+                
         else:
             self.redirect('/login')
         
@@ -273,54 +278,69 @@ class Reports(webapp2.RequestHandler):
         if self.request.cookies.get("name"):
             
             username = self.request.cookies.get("name")
-            user = entities.User.query(entities.User.name == username).get()
-            qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
             error_message = ''
             list_errors = []
+            reports = ''
+            progress = 0
             try:
-                qry.count()
-            except:
-                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                user = entities.User.query(entities.User.name == username).get()
+                qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
+                if qry.count() == user.n_links:
                 
-            if qry.count() == user.n_links:
-                
-                report = entities.Report()
-                report.web = user.root_link
-                report.validation_type = user.validation_type
-                report.onlyDomain = user.onlyDomain
-                report.user = user.name
-                report.results = qry.fetch()
-                report.pages = len(report.results)
-                
-                error_pages = 0
-                errors = 0
-                for result in report.results:
-                    if result.state == 'FAIL' or result.state == 'ERROR':
-                        error_pages+=1
-                    errors += result.errors
+                    report = entities.Report()
+                    report.web = user.root_link
+                    report.validation_type = user.validation_type
+                    report.onlyDomain = user.onlyDomain
+                    report.user = user.name
+                    report.results = qry.fetch()
+                    report.pages = len(report.results)
                     
-                    list_errors.extend(json.loads(result.list_errors))
-        
-                    # Delete repeated elements in the list
-                    i = 0
-                    while i < len(list_errors)-1:
-                        j = i+1
-                        while j < len(list_errors):
-                            if (list_errors[i][0] == list_errors[j][0]):
-                                list_errors[i][1].append(list_errors[j][1][0])
-                                list_errors[i][2].append(list_errors[j][2][0])
-                                del list_errors[j]
-                                j = i
-                            j+=1
-                        i+=1
-                    
-                report.error_pages = error_pages
-                report.errors = errors
-                report.list_errors = json.dumps(list_errors);
+                    error_pages = 0
+                    errors = 0
+                    for result in report.results:
+                        if result.state == 'FAIL' or result.state == 'ERROR':
+                            error_pages+=1
+                        errors += result.errors
+                        
+                        list_errors.extend(json.loads(result.list_errors))
+            
+                        # Delete repeated elements in the list
+                        i = 0
+                        while i < len(list_errors)-1:
+                            j = i+1
+                            while j < len(list_errors):
+                                if (list_errors[i][0] == list_errors[j][0]):
+                                    list_errors[i][1].append(list_errors[j][1][0])
+                                    list_errors[i][2].append(list_errors[j][2][0])
+                                    del list_errors[j]
+                                    j = i
+                                j+=1
+                            i+=1
+                        
+                    report.error_pages = error_pages
+                    report.errors = errors
+                    report.list_errors = json.dumps(list_errors);
                 
-                try:
-                    report.put()
+                    try:
+                        report.put()
+                        
+                        ndb.delete_multi(
+                            entities.PageResult.query(entities.PageResult.user == user.name).fetch(keys_only=True)
+                        )
+                        
+                        # Reset global variables for user
+                        user.n_links = -1
+                        user.root_link = ''
+                        user.validation_type = ''
+                        user.onlyDomain = None
+                        user.lock = False
+                        user.put()
+                        time.sleep(2)
+                        self.redirect('/reports')
+                    except:
+                        error_message = 'Error: Unable to update database: too many errors in your website: '+user.root_link
                     
+                        
                     ndb.delete_multi(
                         entities.PageResult.query(entities.PageResult.user == user.name).fetch(keys_only=True)
                     )
@@ -332,32 +352,19 @@ class Reports(webapp2.RequestHandler):
                     user.onlyDomain = None
                     user.lock = False
                     user.put()
-                    time.sleep(2)
-                    self.redirect('/reports')
-                except:
-                    error_message = 'Error: Unable to update database: too many errors in your website: '+user.root_link
-                
                     
-                ndb.delete_multi(
-                    entities.PageResult.query(entities.PageResult.user == user.name).fetch(keys_only=True)
-                )
+                reports = entities.Report.query().fetch()
+            
+                username = self.request.cookies.get("name")
+                user = entities.User.query(entities.User.name == username).get()  
+                total_pages = user.n_links
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
                 
-                # Reset global variables for user
-                user.n_links = -1
-                user.root_link = ''
-                user.validation_type = ''
-                user.onlyDomain = None
-                user.lock = False
-                user.put()
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
             self.response.headers['Content-Type'] = 'text/html'
-            reports = entities.Report.query().fetch()
-            
-            username = self.request.cookies.get("name")
-            user = entities.User.query(entities.User.name == username).get()  
-            total_pages = user.n_links
-            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-            progress = int((current_pages * 100)/total_pages)
             
             template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/reports.html')
