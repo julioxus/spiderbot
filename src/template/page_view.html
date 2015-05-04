@@ -21,35 +21,6 @@
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
     
-    <script src="static/js/jquery.min.js"></script>
-    <script>
-    
-    var progress = {{progress}};
-    
-    function callAjax() {
-            $.ajax({
-                type: 'GET',
-                url: '/progress',
-                data: $(this).serialize(),
-                dataType: 'json',
-                success: function (data) {
-                	progress = data;
-                }
-            });
-   }
-   
-   
-   $(document).ready(function(){
-	window.setInterval(function(){
-		callAjax()
-	  	console.log(progress);
-	   	var pbar = document.getElementById('pbar');
-	   	pbar.setAttribute("style","width:".concat(progress).concat("%"));
-	},1000);
-   });
-   
-   </script>
-    
   </head>
 
   <body>
@@ -108,3 +79,49 @@
     <script src="static/js/ie10-viewport-bug-workaround.js"></script>
   </body>
 </html>
+
+<script src="static/js/jquery.min.js"></script>
+<!-- Notifications system -->
+<script src="static/js/notify.js"></script>
+<script src="static/js/bootstrap.min.js"></script>
+<script src="static/js/bootstrap-notify.js"></script>
+    
+    <script>
+    
+    var progress = {{progress}};
+    var notified = false;
+    
+    function callAjax() {
+            $.ajax({
+                type: 'GET',
+                url: '/progress',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (data) {
+                	progress = data;
+                }
+            });
+   }
+   
+   
+   $(document).ready(function(){
+	window.setInterval(function(){
+		callAjax()
+	   	var pbar = document.getElementById('pbar');
+	   	pbar.setAttribute("style","width:".concat(progress).concat("%"));
+	   	if(progress == 100 && !notified){
+	   		$.notify({
+				message: "Scan complete, go to Reports",
+				url: "/reports"},{
+				type: 'success'
+			});
+			notified = true;
+		}
+		else if (progress == 0){
+			notified = false;
+	   	}
+	},1000);
+	
+   });
+   
+   </script>

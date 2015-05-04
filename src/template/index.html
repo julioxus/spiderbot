@@ -23,67 +23,12 @@
       <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
       <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
-    <script src="static/js/jquery.min.js"></script>
-    <!-- Notifications system -->
-    <script src="static/js/bootstrap.js"></script>
-    <script src="static/js/bootstrap-notify.js"></script>
     
-    <script>
-    
-    $.notifyDefaults({
-		type: 'success',
-		allow_dismiss: false
-	});
-    
-    var progress = {{progress}};
-    
-    function callAjax() {
-            $.ajax({
-                type: 'GET',
-                url: '/progress',
-                data: $(this).serialize(),
-                dataType: 'json',
-                success: function (data) {
-                	progress = data;
-                }
-            });
-   }
-   
-   
-   $(document).ready(function(){
-	window.setInterval(function(){
-		callAjax()
-	  	console.log(progress);
-	   	var pbar = document.getElementById('pbar');
-	   	pbar.setAttribute("style","width:".concat(progress).concat("%"));
-	},1000);
-	
-   });
-   
-   var notify = $.notify("Enter: Fade In and RightExit: Fade Out and Right", {
-		animate: {
-			enter: 'animated fadeInRight',
-			exit: 'animated fadeOutRight'
-		}
-	});
-   
-   </script>
     
   </head>
 
   <body>
   
-  <div data-notify="container" class="col-xs-11 col-sm-3 alert alert-{0}" role="alert">
-	<button type="button" aria-hidden="true" class="close" data-notify="dismiss">×</button>
-	<span data-notify="icon"></span>
-	<span data-notify="title">{1}</span>
-	<span data-notify="message">{2}</span>
-	<div class="progress" data-notify="progressbar">
-		<div class="progress-bar progress-bar-{0}" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
-	</div>
-	<a href="{3}" target="{4}" data-notify="url"></a>
-   </div>
-
     <nav class="navbar navbar-inverse navbar-fixed-top">
       <div class="container">
         <div class="navbar-header">
@@ -168,3 +113,49 @@
     <script src="static/js/ie10-viewport-bug-workaround.js"></script>
   </body>
 </html>
+
+<script src="static/js/jquery.min.js"></script>
+<!-- Notifications system -->
+<script src="static/js/notify.js"></script>
+<script src="static/js/bootstrap.min.js"></script>
+<script src="static/js/bootstrap-notify.js"></script>
+    
+    <script>
+    
+    var progress = {{progress}};
+    var notified = false;
+    
+    function callAjax() {
+            $.ajax({
+                type: 'GET',
+                url: '/progress',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (data) {
+                	progress = data;
+                }
+            });
+   }
+   
+   
+   $(document).ready(function(){
+	window.setInterval(function(){
+		callAjax()
+	   	var pbar = document.getElementById('pbar');
+	   	pbar.setAttribute("style","width:".concat(progress).concat("%"));
+	   	if(progress == 100 && !notified){
+	   		$.notify({
+				message: "Scan complete, go to Reports",
+				url: "/reports"},{
+				type: 'success'
+			});
+			notified = true;
+		}
+		else if (progress == 0){
+			notified = false;
+	   	}
+	},1000);
+	
+   });
+   
+   </script>

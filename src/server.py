@@ -353,62 +353,56 @@ class Reports(webapp2.RequestHandler):
                     user.lock = False
                     user.put()
                     
-                    reports = entities.Report.query().fetch()
                     
                     
                     # Calculate score and ranking position
                      
-                    scores = []
-                    for r in reports:
-                        distinct_errors = (len(json.loads(r.list_errors)))
-                        error_pages = float(r.error_pages)
-                        pages = float(r.pages)
-                        
-                        # Calculate the two values used by the score
-                        value1 = error_pages / pages # Number of error pages ratio
-                        print error_pages
-                        print pages
-                        print value1
-                         
-                        if error_pages > 0:
-                            value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
-                        else:
-                            value2 = 0
-                        
-                        # Normalize both values
-                         
-                        # Para el primer valor estableceremos el rango [0 1]
-                        # Obviamente nunca habrá mas páginas que páginas con error por tanto el peor caso
-                        # seria un resultado de 1 que implica que todas las paginas muestran errores
-                        # El mejor caso seria un valor de 0 que implica que no existen paginas con errores
-                         
-                        # Para tener una puntuación sobre 10 multiplicamos el valor y obtenemos el inverso
-                         
-                        value1_norm = 10 - value1 * 10
-                         
-                         
-                        # Para el segundo valor establecermos el rango [0 100]
-                         
-                        # 0 implica que no existen errores distintos y sería la maxima nota
-                        # 100 implicaria que existen mas de 100 fallos distintos por página con error
-                        # Limitamos en 100 por tanto
-                         
-                        if value2>=100:
-                            value2 = 100
-                         
-                        # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
-                         
-                        value2_norm = 10 - value2 / 10;
-                         
-                        # Ya podemos calcular la puntuacion
-                         
-                        score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
-                        
-                        scores.append(score)
-                        r.score = score
-                        r.put()
-                        
-                    scores.sort()
+                    distinct_errors = (len(json.loads(report.list_errors)))
+                    error_pages = float(report.error_pages)
+                    pages = float(report.pages)
+                    
+                    # Calculate the two values used by the score
+                    value1 = error_pages / pages # Number of error pages ratio
+                    print error_pages
+                    print pages
+                    print value1
+                     
+                    if error_pages > 0:
+                        value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
+                    else:
+                        value2 = 0
+                    
+                    # Normalize both values
+                     
+                    # Para el primer valor estableceremos el rango [0 1]
+                    # Obviamente nunca habrá mas páginas que páginas con error por tanto el peor caso
+                    # seria un resultado de 1 que implica que todas las paginas muestran errores
+                    # El mejor caso seria un valor de 0 que implica que no existen paginas con errores
+                     
+                    # Para tener una puntuación sobre 10 multiplicamos el valor y obtenemos el inverso
+                     
+                    value1_norm = 10 - value1 * 10
+                     
+                     
+                    # Para el segundo valor establecermos el rango [0 100]
+                     
+                    # 0 implica que no existen errores distintos y sería la maxima nota
+                    # 100 implicaria que existen mas de 100 fallos distintos por página con error
+                    # Limitamos en 100 por tanto
+                     
+                    if value2>=100:
+                        value2 = 100
+                     
+                    # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
+                     
+                    value2_norm = 10 - value2 / 10;
+                     
+                    # Ya podemos calcular la puntuacion
+                     
+                    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
+                    
+                    report.score = score
+                    report.put()
                     
                     # Reload reports with scores updated
                     reports = entities.Report.query().fetch()
