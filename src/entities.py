@@ -24,7 +24,6 @@ class Report(ndb.Model):
     errors = ndb.IntegerProperty()
     list_errors = ndb.TextProperty()
     score = ndb.FloatProperty()
-    ranking_position = ndb.IntegerProperty();
     date = ndb.DateProperty(auto_now=True)
     time = ndb.TimeProperty(auto_now=True)
 

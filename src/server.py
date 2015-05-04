@@ -353,73 +353,76 @@ class Reports(webapp2.RequestHandler):
                     user.lock = False
                     user.put()
                     
+                    reports = entities.Report.query().fetch()
+                    
+                    
+                    # Calculate score and ranking position
+                     
+                    scores = []
+                    for r in reports:
+                        distinct_errors = (len(json.loads(r.list_errors)))
+                        error_pages = float(r.error_pages)
+                        pages = float(r.pages)
+                        
+                        # Calculate the two values used by the score
+                        value1 = error_pages / pages # Number of error pages ratio
+                        print error_pages
+                        print pages
+                        print value1
+                         
+                        if error_pages > 0:
+                            value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
+                        else:
+                            value2 = 0
+                        
+                        # Normalize both values
+                         
+                        # Para el primer valor estableceremos el rango [0 1]
+                        # Obviamente nunca habrá mas páginas que páginas con error por tanto el peor caso
+                        # seria un resultado de 1 que implica que todas las paginas muestran errores
+                        # El mejor caso seria un valor de 0 que implica que no existen paginas con errores
+                         
+                        # Para tener una puntuación sobre 10 multiplicamos el valor y obtenemos el inverso
+                         
+                        value1_norm = 10 - value1 * 10
+                         
+                         
+                        # Para el segundo valor establecermos el rango [0 100]
+                         
+                        # 0 implica que no existen errores distintos y sería la maxima nota
+                        # 100 implicaria que existen mas de 100 fallos distintos por página con error
+                        # Limitamos en 100 por tanto
+                         
+                        if value2>=100:
+                            value2 = 100
+                         
+                        # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
+                         
+                        value2_norm = 10 - value2 / 10;
+                         
+                        # Ya podemos calcular la puntuacion
+                         
+                        score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
+                        
+                        scores.append(score)
+                        r.score = score
+                        r.put()
+                        
+                    scores.sort()
+                    
+                    # Reload reports with scores updated
+                    reports = entities.Report.query().fetch()
+                    
+                    '''
+                    # Associate a position in the ranking
+                    for i in range(0,len(reports)):
+                        for j in range(0,len(scores)):
+                            if reports[i].score == scores[j]:
+                                reports[i].ranking_position = j+1
+                                reports[i].put()
+                    '''
+                                
                 reports = entities.Report.query().fetch()
-                
-                
-                # Calculate score and ranking position
-                 
-                scores = []
-                for r in reports:
-                    distinct_errors = (len(json.loads(r.list_errors)))
-                    error_pages = float(r.error_pages)
-                    pages = float(r.pages)
-                    
-                    # Calculate the two values used by the score
-                    value1 = error_pages / pages # Number of error pages ratio
-                    print error_pages
-                    print pages
-                    print value1
-                     
-                    if error_pages > 0:
-                        value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
-                    else:
-                        value2 = 0
-                    
-                    # Normalize both values
-                     
-                    # Para el primer valor estableceremos el rango [0 1]
-                    # Obviamente nunca habrá mas páginas que páginas con error por tanto el peor caso
-                    # seria un resultado de 1 que implica que todas las paginas muestran errores
-                    # El mejor caso seria un valor de 0 que implica que no existen paginas con errores
-                     
-                    # Para tener una puntuación sobre 10 multiplicamos el valor y obtenemos el inverso
-                     
-                    value1_norm = 10 - value1 * 10
-                     
-                     
-                    # Para el segundo valor establecermos el rango [0 100]
-                     
-                    # 0 implica que no existen errores distintos y sería la maxima nota
-                    # 100 implicaria que existen mas de 100 fallos distintos por página con error
-                    # Limitamos en 100 por tanto
-                     
-                    if value2>=100:
-                        value2 = 100
-                     
-                    # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
-                     
-                    value2_norm = 10 - value2 / 10;
-                     
-                    # Ya podemos calcular la puntuacion
-                     
-                    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
-                    
-                    scores.append(score)
-                    r.score = score
-                    r.put()
-                    
-                scores.sort()
-                print scores
-                
-                # Reload reports with scores updated
-                reports = entities.Report.query().fetch()
-                
-                # Associate a position in the ranking
-                for i in range(0,len(reports)):
-                    for j in range(0,len(scores)):
-                        if reports[i].score == scores[j]:
-                            reports[i].ranking_position = j+1
-                            reports[i].put()
                 
                 
                 username = self.request.cookies.get("name")
@@ -502,7 +505,33 @@ class GetScanProgress(webapp2.RequestHandler):
         
 class Rankings(webapp2.RequestHandler):
     def get(self):
-        template_values={}
+        
+        if self.request.cookies.get("name"):
+            self.response.headers['Content-Type'] = 'text/html'
+            progress = 0
+            reports = []
+            scores = []
+            webs = []
+            
+            try:
+                username = self.request.cookies.get("name")
+                user = entities.User.query(entities.User.name == username).get()  
+                total_pages = user.n_links
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
+                
+                reports = entities.Report.query().fetch()
+                for r in reports:
+                    scores.append(r.score)
+                    webs.append(r.web)
+                
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+        
+        else:
+            self.redirect('/login')
+        
+        template_values={'progress':progress,'scores':scores,'webs':webs}
         template = JINJA_ENVIRONMENT.get_template('template/rankings.html')
         self.response.write(template.render(template_values))
     

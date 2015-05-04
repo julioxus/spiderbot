@@ -107,17 +107,17 @@
     			<td>
 			    	<table id="report_subtable">
 			    		<tr>
-							<td>Web</td>
-							<td>{{report.web}}</td>
+							<th>Web</th>
+							<td><a href="{{report.web}}">{{report.web}}</a></td>
 						</tr>
-							<td>Validation type</td>
+							<th>Validation type</th>
 							<td>{{report.validation_type}}</td>
 						<tr>
-							<td>Only Domain?</td>
+							<th>Only Domain?</th>
 							<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
 						</tr>
 						<tr>
-							<td>Pages</td>
+							<th>Pages</th>
 							<td>{{report.pages}}</td>
 						</tr>
 					</table>
