@@ -538,10 +538,29 @@ class Test(webapp2.RequestHandler):
     def get(self):
         result = validators.GoogleMobileValidation('http://www.ugr.es')
         out = ''
-        scoreUsability = result['ruleGroups']['USABILITY']['score'];
-        scoreSpeed = result['ruleGroups']['SPEED']['score'];
+        scoreUsability = result['ruleGroups']['USABILITY']['score']
+        scoreSpeed = result['ruleGroups']['SPEED']['score']
+        ruleResults = result['formattedResults']['ruleResults']
+        ruleNames = []
+        types = []
+        summaries = []
         
-        out = '%d <br /> %d' % (scoreUsability, scoreSpeed)
+        out = '%d <br /> %d <br/>' % (scoreUsability, scoreSpeed)
+        
+        for r in ruleResults:
+            #out += r['localizedRuleName'] + '<br/>'
+            ruleNames.append(result['formattedResults']['ruleResults'][r]['localizedRuleName'])
+            out += result['formattedResults']['ruleResults'][r]['localizedRuleName'] + '<br/>'
+            types.append(result['formattedResults']['ruleResults'][r]['groups'][0])
+            out += result['formattedResults']['ruleResults'][r]['groups'][0] + '<br/>'
+            '''summaries.append(result['formattedResults']['ruleResults'][r]['summary'])
+            out += str(result['formattedResults']['ruleResults'][r]['summary']) + '<br/>'
+            '''
+            
+            out += str(result['formattedResults']['ruleResults'][r].keys())
+            
+            out += '<br/>'
+        
         
         self.response.write(out)
         
