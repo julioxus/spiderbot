@@ -13,6 +13,8 @@ html_validator_url = 'http://validator.w3.org/check'
 css_validator_url = 'http://jigsaw.w3.org/css-validator/validator'
 wcag_validator_url = 'http://achecker.ca/checkacc.php'
 ACHECKER_ID = '8d50ba76d166da61bdc9dfa3c97247b32dd1014c'
+pagespeed_api_url = 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed'
+GOOGLE_API_KEY = 'AIzaSyDmU2XjCiUJdMyDDhX8AQ8n-4vye8i5Uzk'
 
 def validate(filename,page_type):
     '''
@@ -167,3 +169,18 @@ def html_decode(s):
     for code in htmlCodes:
         s = s.replace(code[1], code[0])
     return s
+
+def GoogleMobileValidation(filename):
+    if filename.startswith('http://') or filename.startswith('https://'):
+        # Submit URI with GET.
+        urlfetch.set_default_fetch_deadline(60)
+        payload = {'url': filename, 'key': GOOGLE_API_KEY, 'strategy': 'mobile', 'locale':'en_US'}
+        encoded_args = urllib.urlencode(payload)
+        url = pagespeed_api_url + '/?' + encoded_args
+        r = urllib2.urlopen(url)
+     
+        result = json.load(r)
+        #time.sleep(2)   # Be nice and don't hog the free validator service.
+        return result
+    else:
+        return ''

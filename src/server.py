@@ -255,6 +255,11 @@ class Validation(webapp2.RequestHandler):
                     content += "Achecker service not working properly"
                     state = 'ERROR'
                     content += '\n\n'
+            
+            '''elif option == 'MOBILE':
+                result = validators.GoogleMobileValidation(f)
+            '''
+                
                 
             retrys -= 1
         
@@ -529,6 +534,17 @@ class Rankings(webapp2.RequestHandler):
         template = JINJA_ENVIRONMENT.get_template('template/rankings.html')
         self.response.write(template.render(template_values))
     
+class Test(webapp2.RequestHandler):
+    def get(self):
+        result = validators.GoogleMobileValidation('http://www.ugr.es')
+        out = ''
+        scoreUsability = result['ruleGroups']['USABILITY']['score'];
+        scoreSpeed = result['ruleGroups']['SPEED']['score'];
+        
+        out = '%d <br /> %d' % (scoreUsability, scoreSpeed)
+        
+        self.response.write(out)
+        
         
 urls = [('/',MainPage),
         ('/login',login),
@@ -540,6 +556,7 @@ urls = [('/',MainPage),
         ('/logout',logout),
         ('/progress',GetScanProgress),
         ('/rankings',Rankings),
+        ('/test',Test),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
