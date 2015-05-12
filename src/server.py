@@ -537,11 +537,13 @@ class Rankings(webapp2.RequestHandler):
 class Test(webapp2.RequestHandler):
     def get(self):
         result = validators.GoogleMobileValidation('http://www.ugr.es')
+        '''
         out = ''
         scoreUsability = result['ruleGroups']['USABILITY']['score']
         scoreSpeed = result['ruleGroups']['SPEED']['score']
         ruleResults = result['formattedResults']['ruleResults']
         ruleNames = []
+        ruleImpacts = []
         types = []
         summaries = []
         
@@ -549,21 +551,32 @@ class Test(webapp2.RequestHandler):
         
         for r in ruleResults:
             #out += r['localizedRuleName'] + '<br/>'
-            ruleNames.append(result['formattedResults']['ruleResults'][r]['localizedRuleName'])
             out += result['formattedResults']['ruleResults'][r]['localizedRuleName'] + '<br/>'
-            types.append(result['formattedResults']['ruleResults'][r]['groups'][0])
+            ruleNames.append(result['formattedResults']['ruleResults'][r]['localizedRuleName'])
+            out += str(result['formattedResults']['ruleResults'][r]['ruleImpact']) + '<br/>'
+            ruleImpacts.append(result['formattedResults']['ruleResults'][r]['ruleImpact'])
             out += result['formattedResults']['ruleResults'][r]['groups'][0] + '<br/>'
-            '''summaries.append(result['formattedResults']['ruleResults'][r]['summary'])
-            out += str(result['formattedResults']['ruleResults'][r]['summary']) + '<br/>'
-            '''
+            types.append(result['formattedResults']['ruleResults'][r]['groups'][0])
+            if 'summary' in result['formattedResults']['ruleResults'][r]:
+                summaries.append(result['formattedResults']['ruleResults'][r]['summary'])
+                summary = result['formattedResults']['ruleResults'][r]['summary']
+                
+                args = 0
+                summaryParsed = summary['format'].replace('{{BEGIN_LINK}}','<a href='+)
+                
+                out += summary['format'] + '</br>'
+            
             
             out += str(result['formattedResults']['ruleResults'][r].keys())
             
-            out += '<br/>'
-        
+            out += '<br/></br>'
         
         self.response.write(out)
+        '''
         
+        template_values={}
+        template = JINJA_ENVIRONMENT.get_template('template/test.html')
+        self.response.write(template.render(template_values))
         
 urls = [('/',MainPage),
         ('/login',login),
