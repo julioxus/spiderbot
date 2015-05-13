@@ -537,7 +537,7 @@ class Rankings(webapp2.RequestHandler):
 class Test(webapp2.RequestHandler):
     def get(self):
         result = validators.GoogleMobileValidation('http://www.ugr.es')
-        '''
+        
         out = ''
         scoreUsability = result['ruleGroups']['USABILITY']['score']
         scoreSpeed = result['ruleGroups']['SPEED']['score']
@@ -561,22 +561,28 @@ class Test(webapp2.RequestHandler):
                 summaries.append(result['formattedResults']['ruleResults'][r]['summary'])
                 summary = result['formattedResults']['ruleResults'][r]['summary']
                 
-                args = 0
-                summaryParsed = summary['format'].replace('{{BEGIN_LINK}}','<a href='+)
+                summaryParsed = summary['format']
+                if 'args' in summary:
+                    for i in range(0,len(summary['args'])):
+                        if summary['args'][i]['key'] == 'LINK':
+                            summaryParsed = summaryParsed.replace('{{BEGIN_LINK}}','<a href='+summary['args'][i]['value']+'>')
+                            summaryParsed = summaryParsed.replace('{{END_LINK}}','</a>')
+                        else:
+                            summaryParsed = summaryParsed.replace('{{'+summary['args'][i]['key']+'}}', summary['args'][i]['value'])
                 
-                out += summary['format'] + '</br>'
-            
+                out += summaryParsed + '</br>'
             
             out += str(result['formattedResults']['ruleResults'][r].keys())
             
             out += '<br/></br>'
         
         self.response.write(out)
-        '''
         
-        template_values={}
-        template = JINJA_ENVIRONMENT.get_template('template/test.html')
-        self.response.write(template.render(template_values))
+        
+        #template_values={}
+        #template = JINJA_ENVIRONMENT.get_template()
+        #self.response.write(template.render(template_values))
+        
         
 urls = [('/',MainPage),
         ('/login',login),

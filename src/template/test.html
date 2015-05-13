@@ -40,7 +40,7 @@
 	var API_KEY = 'AIzaSyDmU2XjCiUJdMyDDhX8AQ8n-4vye8i5Uzk';
 	
 	// Specify the URL you want PageSpeed results for here:
-	var URL_TO_GET_RESULTS_FOR = 'https://developers.google.com/speed/pagespeed/insights/';
+	var URL_TO_GET_RESULTS_FOR = 'http://www.ugr.es/';
 	</script>
 	
 	<script>
@@ -99,7 +99,7 @@
 	
 	<script>
 		callbacks.displayPageSpeedScore = function(result) {
-		  var score = result.score;
+		  var score = result.ruleGroups.SPEED.score;
 		  // Construct the query to send to the Google Chart Tools.
 		  var query = [
 		    'chtt=Page+Speed+score:+' + score,
@@ -112,8 +112,41 @@
 		  var i = document.createElement('img');
 		  i.src = CHART_API_URL + query;
 		  document.body.insertBefore(i, null);
+		  console.log(result);
 		};
 </script>
+
+<script>
+callbacks.displayTopPageSpeedSuggestions = function(result) {
+  var results = [];
+  var ruleResults = result.formattedResults.ruleResults;
+  for (var i in ruleResults) {
+    var ruleResult = ruleResults[i];
+    // Don't display lower-impact suggestions.
+    if (ruleResult.ruleImpact < 3.0) continue;
+    results.push({name: ruleResult.localizedRuleName,
+                  impact: ruleResult.ruleImpact});
+  }
+  results.sort(sortByImpact);
+  var ul = document.createElement('ul');
+  for (var i = 0, len = results.length; i < len; ++i) {
+    var r = document.createElement('li');
+    r.innerHTML = results[i].name;
+    ul.insertBefore(r, null);
+  }
+  if (ul.hasChildNodes()) {
+    document.body.insertBefore(ul, null);
+  } else {
+    var div = document.createElement('div');
+    div.innerHTML = 'No high impact suggestions. Good job!';
+    document.body.insertBefore(div, null);
+  }
+};
+
+// Helper function that sorts results in order of impact.
+function sortByImpact(a, b) { return b.impact - a.impact; }
+</script>
+
     
   </body>
 </html>
