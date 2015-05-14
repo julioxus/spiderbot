@@ -546,11 +546,11 @@ class Test(webapp2.RequestHandler):
         ruleImpacts = []
         types = []
         summaries = []
+        urlBlocks = []
         
         out = '%d <br /> %d <br/>' % (scoreUsability, scoreSpeed)
         
         for r in ruleResults:
-            #out += r['localizedRuleName'] + '<br/>'
             out += result['formattedResults']['ruleResults'][r]['localizedRuleName'] + '<br/>'
             ruleNames.append(result['formattedResults']['ruleResults'][r]['localizedRuleName'])
             out += str(result['formattedResults']['ruleResults'][r]['ruleImpact']) + '<br/>'
@@ -558,7 +558,6 @@ class Test(webapp2.RequestHandler):
             out += result['formattedResults']['ruleResults'][r]['groups'][0] + '<br/>'
             types.append(result['formattedResults']['ruleResults'][r]['groups'][0])
             if 'summary' in result['formattedResults']['ruleResults'][r]:
-                summaries.append(result['formattedResults']['ruleResults'][r]['summary'])
                 summary = result['formattedResults']['ruleResults'][r]['summary']
                 
                 summaryParsed = summary['format']
@@ -571,6 +570,26 @@ class Test(webapp2.RequestHandler):
                             summaryParsed = summaryParsed.replace('{{'+summary['args'][i]['key']+'}}', summary['args'][i]['value'])
                 
                 out += summaryParsed + '</br>'
+                summaries.append(summaryParsed)
+            
+            if 'urlBlocks' in result['formattedResults']['ruleResults'][r]:
+                urlBlockHeaders = []
+                urlBlockUrls = []
+                
+                for block in result['formattedResults']['ruleResults'][r]['urlBlocks']:
+                    urlBlockHeader = block['header']
+                
+                    urlBlockHeaderParsed = urlBlockHeader['format']
+                    if 'args' in urlBlockHeader:
+                        for i in range(0,len(urlBlockHeader['args'])):
+                            if urlBlockHeader['args'][i]['key'] == 'LINK':
+                                urlBlocksHeaderParsed = urlBlockHeaderParsed.replace('{{BEGIN_LINK}}','<a href='+urlBlockHeader['args'][i]['value']+'>')
+                                urlBlocksHeaderParsed = urlBlockHeaderParsed.replace('{{END_LINK}}','</a>')
+                            else:
+                                urlBlockHeaderParsed = urlBlocksHeaderParsed.replace('{{'+urlBlockHeader['args'][i]['key']+'}}', urlBlockHeader['args'][i]['value'])
+                    
+                            out += urlBlockHeaderParsed + '</br>'
+                            urlBlockHeaders.append(urlBlocksHeaderParsed)
             
             out += str(result['formattedResults']['ruleResults'][r].keys())
             
