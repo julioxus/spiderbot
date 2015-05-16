@@ -574,22 +574,38 @@ class Test(webapp2.RequestHandler):
             
             if 'urlBlocks' in result['formattedResults']['ruleResults'][r]:
                 urlBlockHeaders = []
-                urlBlockUrls = []
+                urlBlockUrlsList = []
                 
                 for block in result['formattedResults']['ruleResults'][r]['urlBlocks']:
                     urlBlockHeader = block['header']
+                    urlBlockUrls = block['urls']
                 
                     urlBlockHeaderParsed = urlBlockHeader['format']
                     if 'args' in urlBlockHeader:
                         for i in range(0,len(urlBlockHeader['args'])):
                             if urlBlockHeader['args'][i]['key'] == 'LINK':
-                                urlBlocksHeaderParsed = urlBlockHeaderParsed.replace('{{BEGIN_LINK}}','<a href='+urlBlockHeader['args'][i]['value']+'>')
-                                urlBlocksHeaderParsed = urlBlockHeaderParsed.replace('{{END_LINK}}','</a>')
+                                urlBlockHeaderParsed = urlBlockHeaderParsed.replace('{{BEGIN_LINK}}','<a href='+urlBlockHeader['args'][i]['value']+'>')
+                                urlBlockHeaderParsed = urlBlockHeaderParsed.replace('{{END_LINK}}','</a>')
                             else:
-                                urlBlockHeaderParsed = urlBlocksHeaderParsed.replace('{{'+urlBlockHeader['args'][i]['key']+'}}', urlBlockHeader['args'][i]['value'])
+                                urlBlockHeaderParsed = urlBlockHeaderParsed.replace('{{'+urlBlockHeader['args'][i]['key']+'}}', urlBlockHeader['args'][i]['value'])
                     
                             out += urlBlockHeaderParsed + '</br>'
-                            urlBlockHeaders.append(urlBlocksHeaderParsed)
+                            urlBlockHeaders.append(urlBlockHeaderParsed)
+                            
+                        for u in range(0,len(urlBlockUrls)):
+                            v = []
+                            urlBlockUrlsList.append(v)
+                            resultParsed = urlBlockUrls[u]['format']
+                            if 'args' in urlBlockUrls[u]:
+                                for i in range(0,len(urlBlockUrls[u]['args'])):
+                                    if result['args'][i]['key'] == 'LINK':
+                                        resultParsed = resultParsed.replace('{{BEGIN_LINK}}','<a href='+urlBlockUrls[u]['args'][i]['value']+'>')
+                                        resultParsed = resultParsed.replace('{{END_LINK}}','</a>')
+                                    else:
+                                        resultParsed = resultParsed.replace('{{'+urlBlockUrls[u]['args'][i]['key']+'}}', urlBlockUrls[u]['args'][i]['value'])
+                            
+                                    out += resultParsed + '</br>'
+                                    urlBlockUrlsList[u].append(resultParsed)
             
             out += str(result['formattedResults']['ruleResults'][r].keys())
             
