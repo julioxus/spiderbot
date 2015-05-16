@@ -537,25 +537,21 @@ class Rankings(webapp2.RequestHandler):
 class Test(webapp2.RequestHandler):
     def get(self):
         result = validators.GoogleMobileValidation('http://www.ugr.es')
+        ruleResults = result['formattedResults']['ruleResults']
         
-        out = ''
         scoreUsability = result['ruleGroups']['USABILITY']['score']
         scoreSpeed = result['ruleGroups']['SPEED']['score']
-        ruleResults = result['formattedResults']['ruleResults']
         ruleNames = []
         ruleImpacts = []
         types = []
         summaries = []
         urlBlocks = []
-        
-        out = '%d <br /> %d <br/>' % (scoreUsability, scoreSpeed)
+        urlBlocksHeaders = []
+        urlBlocksUrlsList = []
         
         for r in ruleResults:
-            out += result['formattedResults']['ruleResults'][r]['localizedRuleName'] + '<br/>'
             ruleNames.append(result['formattedResults']['ruleResults'][r]['localizedRuleName'])
-            out += str(result['formattedResults']['ruleResults'][r]['ruleImpact']) + '<br/>'
             ruleImpacts.append(result['formattedResults']['ruleResults'][r]['ruleImpact'])
-            out += result['formattedResults']['ruleResults'][r]['groups'][0] + '<br/>'
             types.append(result['formattedResults']['ruleResults'][r]['groups'][0])
             if 'summary' in result['formattedResults']['ruleResults'][r]:
                 summary = result['formattedResults']['ruleResults'][r]['summary']
@@ -568,17 +564,17 @@ class Test(webapp2.RequestHandler):
                             summaryParsed = summaryParsed.replace('{{END_LINK}}','</a>')
                         else:
                             summaryParsed = summaryParsed.replace('{{'+summary['args'][i]['key']+'}}', summary['args'][i]['value'])
-                
-                out += summaryParsed + '</br>'
-                summaries.append(summaryParsed)
+            else:
+                summaryParsed = 'No summary for this rule'
             
+            summaries.append(summaryParsed)
+                
             if 'urlBlocks' in result['formattedResults']['ruleResults'][r]:
                 urlBlockHeaders = []
                 urlBlockUrlsList = []
                 
                 for block in result['formattedResults']['ruleResults'][r]['urlBlocks']:
                     urlBlockHeader = block['header']
-                    urlBlockUrls = block['urls']
                 
                     urlBlockHeaderParsed = urlBlockHeader['format']
                     if 'args' in urlBlockHeader:
@@ -589,34 +585,43 @@ class Test(webapp2.RequestHandler):
                             else:
                                 urlBlockHeaderParsed = urlBlockHeaderParsed.replace('{{'+urlBlockHeader['args'][i]['key']+'}}', urlBlockHeader['args'][i]['value'])
                     
-                            out += urlBlockHeaderParsed + '</br>'
-                            urlBlockHeaders.append(urlBlockHeaderParsed)
-                            
+                    urlBlockHeaders.append(urlBlockHeaderParsed)
+                        
+                    if 'urls' in block:    
+                        urlBlockUrls = block['urls']
                         for u in range(0,len(urlBlockUrls)):
                             v = []
                             urlBlockUrlsList.append(v)
-                            resultParsed = urlBlockUrls[u]['format']
-                            if 'args' in urlBlockUrls[u]:
-                                for i in range(0,len(urlBlockUrls[u]['args'])):
-                                    if result['args'][i]['key'] == 'LINK':
-                                        resultParsed = resultParsed.replace('{{BEGIN_LINK}}','<a href='+urlBlockUrls[u]['args'][i]['value']+'>')
+                            res = urlBlockUrls[u]['result']
+                            resultParsed = res['format']
+                            if 'args' in res:
+                                for j in range(0,len(res['args'])):
+                                    if res['args'][j]['key'] == 'LINK':
+                                        resultParsed = resultParsed.replace('{{BEGIN_LINK}}','<a href='+res['args'][j]['value']+'>')
                                         resultParsed = resultParsed.replace('{{END_LINK}}','</a>')
                                     else:
-                                        resultParsed = resultParsed.replace('{{'+urlBlockUrls[u]['args'][i]['key']+'}}', urlBlockUrls[u]['args'][i]['value'])
+                                        resultParsed = resultParsed.replace('{{'+res['args'][j]['key']+'}}', res['args'][j]['value'])
                             
-                                    out += resultParsed + '</br>'
-                                    urlBlockUrlsList[u].append(resultParsed)
+                            urlBlockUrlsList[u].append(resultParsed)
+                
+                urlBlocks.append({'urlBlockHeaders': urlBlockHeaders, 'urlBlocksUrlsList': urlBlocksUrlsList})
             
-            out += str(result['formattedResults']['ruleResults'][r].keys())
-            
-            out += '<br/></br>'
-        
-        self.response.write(out)
+            else:
+                urlBlocks.append('No url blocks for this rule')
         
         
-        #template_values={}
-        #template = JINJA_ENVIRONMENT.get_template()
-        #self.response.write(template.render(template_values))
+        template_values={
+            'scoreUsability': scoreUsability,
+            'scoreSpeed': scoreSpeed,
+            'ruleNames': ruleNames,
+            'ruleImpacts': ruleImpacts,
+            'types': types,
+            'summaries': summaries,
+            'urlBlocks': urlBlocks
+        }
+        
+        template = JINJA_ENVIRONMENT.get_template('template/test.html')
+        self.response.write(template.render(template_values))
         
         
 urls = [('/',MainPage),
