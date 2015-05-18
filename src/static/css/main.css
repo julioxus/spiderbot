@@ -171,7 +171,33 @@ body {
 	height: 5px;
 }
 
-div#usability table *{
+div#usability table th, td{
 	padding: 10px;
 	border: 1px solid;
+}
+
+div#usability table{
+	margin-bottom: 10px;
+}
+
+div#usability table th, td{
+	padding: 10px;
+	border: 1px solid;
+}
+
+div#usability table{
+	margin-bottom: 10px;
+}
+
+div#speed table th, td{
+	padding: 10px;
+	border: 1px solid;
+}
+
+div#speed table{
+	margin-bottom: 10px;
+}
+
+table.urlBlock{
+	margin-left: 20px;
 }

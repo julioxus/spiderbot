@@ -36,32 +36,81 @@
 	  	</table>
 	  	{% for i in range(types|length) %}
 	  		{% if types[i] == 'USABILITY' %}
-	  		<table>
-			  	<tr>
-			  		<th>Rule name</th>
-			  		<td>{{ruleNames[i]}}</td>
-			  	</tr>
-			  	<tr>
-			  		<th>Rule impact</th>
-			  		<td>{{ruleImpacts[i]}}</td>
-			  	</tr>
-			  	<tr>
-			  		<th>Summary</th>
-			  		<td>{{summaries[i]}}</td>
-			  	</tr>
-			  	<tr>
-			  		<th>UrlBlocks</th>
-			  		{% for block in urlBlocks %}
-			  			<th>HEADERS</th>
-			  			{% for header in block['urlBlockHeaders'] %}
-			  				<td>{{header}}</td>
-			  			{% endfor %}
-			  		{% endfor %}
-			  	</tr>
-			</table>
+		  		<table>
+				  	<tr>
+				  		<th>Rule name</th>
+				  		<td>{{ruleNames[i]}}</td>
+				  	</tr>
+				  	<tr>
+				  		<th>Rule impact</th>
+				  		<td>{{ruleImpacts[i]}}</td>
+				  	</tr>
+				  	<tr>
+				  		<th>Summary</th>
+				  		<td>{{summaries[i]|safe}}</td>
+				  	</tr>
+				</table>
+				
+		  		{% if urlBlocks[i] != 'None' %}
+		  			<table class="urlBlock">
+		  			{% for header in urlBlocks[i]['urlBlockHeaders'] %}
+		  				<tr>
+		  					<th>{{header|safe}}</th>
+		  				</tr>
+		  			{% endfor %}
+		  			{% for url in urlBlocks[i]['urlBlockUrlsList'] %}
+		  			<tr>
+		  				<td>{{url|safe}}</td>
+		  			</tr>
+		  			{% endfor %}
+		  			</table>
+		  		{% endif %}
 			{% endif %}
 	  	{% endfor %}
-	  		
+  </div>
+  
+  
+  <div id="speed">
+	  <h1>SPEED</h1>
+	  <table>
+		  	<tr>
+		  		<th>Score</th>
+		  		<td>{{scoreSpeed}}</td>
+		  	</tr>
+	  	</table>
+	  	{% for i in range(types|length) %}
+	  		{% if types[i] == 'SPEED' %}
+		  		<table>
+				  	<tr>
+				  		<th>Rule name</th>
+				  		<td>{{ruleNames[i]}}</td>
+				  	</tr>
+				  	<tr>
+				  		<th>Rule impact</th>
+				  		<td>{{ruleImpacts[i]}}</td>
+				  	</tr>
+				  	<tr>
+				  		<th>Summary</th>
+				  		<td>{{summaries[i]|safe}}</td>
+				  	</tr>
+				</table>
+				
+		  		{% if urlBlocks[i] != 'None' %}
+		  			<table class="urlBlock">
+		  			{% for header in urlBlocks[i]['urlBlockHeaders'] %}
+		  				<tr>
+		  					<th>{{header|safe}}</th>
+		  				</tr>
+		  			{% endfor %}
+		  			{% for url in urlBlocks[i]['urlBlockUrlsList'] %}
+		  			<tr>
+		  				<td>{{url|safe}}</td>
+		  			</tr>
+		  			{% endfor %}
+		  			</table>
+		  		{% endif %}
+			{% endif %}
+	  	{% endfor %}
   </div>
   
 	    <!-- Bootstrap core JavaScript

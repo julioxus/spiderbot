@@ -536,7 +536,7 @@ class Rankings(webapp2.RequestHandler):
     
 class Test(webapp2.RequestHandler):
     def get(self):
-        result = validators.GoogleMobileValidation('http://www.ugr.es')
+        result = validators.GoogleMobileValidation('http://www.elotrolado.net')
         ruleResults = result['formattedResults']['ruleResults']
         
         scoreUsability = result['ruleGroups']['USABILITY']['score']
@@ -546,8 +546,6 @@ class Test(webapp2.RequestHandler):
         types = []
         summaries = []
         urlBlocks = []
-        urlBlocksHeaders = []
-        urlBlocksUrlsList = []
         
         for r in ruleResults:
             ruleNames.append(result['formattedResults']['ruleResults'][r]['localizedRuleName'])
@@ -590,8 +588,7 @@ class Test(webapp2.RequestHandler):
                     if 'urls' in block:    
                         urlBlockUrls = block['urls']
                         for u in range(0,len(urlBlockUrls)):
-                            v = []
-                            urlBlockUrlsList.append(v)
+                            
                             res = urlBlockUrls[u]['result']
                             resultParsed = res['format']
                             if 'args' in res:
@@ -601,13 +598,14 @@ class Test(webapp2.RequestHandler):
                                         resultParsed = resultParsed.replace('{{END_LINK}}','</a>')
                                     else:
                                         resultParsed = resultParsed.replace('{{'+res['args'][j]['key']+'}}', res['args'][j]['value'])
-                            
-                            urlBlockUrlsList[u].append(resultParsed)
+                            #resultParsed = resultParsed.encode('utf-8')
+                            #print resultParsed
+                            urlBlockUrlsList.append(resultParsed)
                 
-                urlBlocks.append({'urlBlockHeaders': urlBlockHeaders, 'urlBlocksUrlsList': urlBlocksUrlsList})
+                urlBlocks.append({'urlBlockHeaders': urlBlockHeaders, 'urlBlockUrlsList': urlBlockUrlsList})
             
             else:
-                urlBlocks.append('No url blocks for this rule')
+                urlBlocks.append('None')
         
         
         template_values={
