@@ -44,6 +44,17 @@ body {
 	background-position: 400px;
 }
 
+#google_reports_container{
+	width: 800px;
+	margin: auto;
+	border: 1px solid;
+	padding: 40px;
+	border-top-left-radius: 6px;
+	background-repeat: no-repeat;
+	background-size: 300px;
+	background-position: 400px;
+}
+
 #rankingPositionNumber{
 	position: relative;
 	left: 460px;

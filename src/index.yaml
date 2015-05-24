@@ -14,3 +14,8 @@ indexes:
   properties:
   - name: user
   - name: number
+
+- kind: PageResultGoogle
+  properties:
+  - name: user
+  - name: number

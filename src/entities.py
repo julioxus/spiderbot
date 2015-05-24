@@ -13,6 +13,14 @@ class PageResult(ndb.Model):
     list_errors = ndb.TextProperty()
     number = ndb.IntegerProperty()
     
+class PageResultGoogle(ndb.Model):
+    user = ndb.StringProperty()
+    url = ndb.StringProperty()
+    scoreUsability = ndb.FloatProperty()
+    scoreSpeed = ndb.FloatProperty()
+    content = ndb.TextProperty()
+    number = ndb.IntegerProperty()
+    
 class Report(ndb.Model):
     web = ndb.StringProperty()
     validation_type = ndb.StringProperty()
@@ -24,6 +32,18 @@ class Report(ndb.Model):
     errors = ndb.IntegerProperty()
     list_errors = ndb.TextProperty()
     score = ndb.FloatProperty()
+    date = ndb.DateProperty(auto_now=True)
+    time = ndb.TimeProperty(auto_now=True)
+    
+class ReportGoogle(ndb.Model):
+    web = ndb.StringProperty()
+    validation_type = ndb.StringProperty()
+    user = ndb.StringProperty()
+    onlyDomain = ndb.BooleanProperty()
+    results = ndb.StructuredProperty(PageResultGoogle, repeated=True)
+    pages = ndb.IntegerProperty()
+    scoreUsability = ndb.FloatProperty()
+    scoreSpeed = ndb.FloatProperty()
     date = ndb.DateProperty(auto_now=True)
     time = ndb.TimeProperty(auto_now=True)
 
