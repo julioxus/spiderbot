@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Spiderbot</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="static/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="static/css/main.css" rel="stylesheet">
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+   
+  </head>
+
+  <body>
+
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="/">Spiderbot</a>
+        </div>
+        <div id="navbar" class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li><a href="/">Home</a></li>
+            <li class="active"><a href="/reports">Reports</a></li>
+            <li><a href="/google-reports">Google Reports</a></li>
+            <li><a href="/rankings">Rankings</a></li>
+            <li><a href="#about">About</a></li>
+            <li><a href="#contact">Contact</a></li>
+          </ul>
+          <input id="button-logout" name="button-logout" type="button" value="Log Out" onclick="location.href='/logout';" class="btn btn-warning" />
+        </div><!--/.nav-collapse -->
+      </div>
+    </nav>
+    
+    <div id="progress-bar" class="progress progress-striped active">
+	  <div id="pbar" class="progress-bar" role="progressbar"
+	       aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
+	       style="width: {{progress}}%">
+	    <span class="sr-only"></span>
+	  </div>
+	</div>
+
+    <div class="container">
+
+      <div class="starter-template">
+        <h1>Users</h1>
+         <div class="container" id="reports_main_container">
+         	<table>
+         		<tr>
+         			<th>User name</th>
+         			<th>Name</th>
+         			<th>Email</th>
+         			<th>Group</th>
+         		</tr>
+         		{% for user in users %}
+         		<tr>
+         			<td>{{user.name}}</td>
+         			<td>{{user.full_name}}</td>
+         			<td><a href="mailto:{{user.email}}">{{user.email}}</a></td>
+         			<td>{{user.group}}</td>
+         			<td><button id="buttonEdit-{{user.name}}">Edit</button></td>
+         			<td>
+	         			<form id="form-delete" role="form" action="/delete-user" method="post">
+		         			<input type="hidden" id="name" name="name" value="{{user.name}}"/>
+		         			<input type="submit" id="buttonDelete" value="Delete"/>
+	         			</form>
+         			</td>
+         		</tr>
+         		<tr>
+         			<td id="edit-{{user.name}}" colspan="6">
+         				<div class="container" id="form-edit">
+			         		<form id="form-edit" role="form" action="/edit-user" method="post">
+			         			<table>
+			         			<tr>
+				         			<td><label for="edit-full_name">Full name:</label></td>
+						         	<td><input type="text" id="edit-full_name" name="edit-full_name"/></td>
+					         	</tr>
+					         	<tr>
+				         			<td><label for="edit-email">Email:</label></td>
+					         		<td><input type="email" id="edit-email" name="edit-email"/></td>
+			         			<tr>
+			         				<td><label for="edit-group">Group:</label>
+				         			<td><select id="edit-group" name="edit-group">
+				         			<option value="User">User</option>
+									<option value="Admin">Admin</option>
+									</select></td>
+				         		</tr>
+				         		<tr>
+				         			<td><label for="edit-password">Password:</label></td>
+					         		<td><input type="password" id="edit-password" name="edit-password"/></td>
+				         		</tr>
+				         		<input type="hidden" id="name" name="name" value="{{user.name}}"/>
+				         		<tr>
+				         			<td colspan="2"><button type="submit" class="btn btn-default">Submit</button></td>
+				         		</tr>
+				         		</table>
+			         		</form>
+		         		</div>
+	         		</td>
+         		</tr>
+         	{% endfor %}
+         	</table>
+         	<div class="container" id="form-create">
+         		<form id="form-create" role="form" action="/create-user" method="post">
+         			<table>
+         			<tr>
+	         			<td><label for="create-name">User name:</label></td>
+			         	<td><input type="text" id="create-name" name="create-name"/></td>
+		         	</tr>
+         			<tr>
+	         			<td><label for="create-full_name">Full name:</label></td>
+			         	<td><input type="text" id="create-full_name" name="create-full_name"/></td>
+		         	</tr>
+		         	<tr>
+	         			<td><label for="create-email">Email:</label></td>
+		         		<td><input type="email" id="edit-email" name="create-email"/></td>
+         			<tr>
+         				<td><label for="create-group">Group:</label>
+	         			<td><select id="create-group" name="create-group">
+	         			<option value="User">User</option>
+						<option value="Admin">Admin</option>
+						</select></td>
+	         		</tr>
+	         		<tr>
+	         			<td><label for="create-password">Password:</label></td>
+		         		<td><input type="password" id="create-password" name="create-password"/></td>
+	         		</tr>
+	         		<tr>
+	         			<td colspan="2"><button type="submit" class="btn btn-default">Submit</button></td>
+	         		</tr>
+	         		</table>
+         		</form>
+        	</div>
+         	<button id="buttonNew">New user</button>
+         </div>
+         <form
+	</div>
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="static/js/bootstrap.min.js"></script>
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="static/js/ie10-viewport-bug-workaround.js"></script>
+  </body>
+</html>
+
+<script src="static/js/jquery.min.js"></script>
+<!-- Notifications system -->
+<script src="static/js/notify.js"></script>
+<script src="static/js/bootstrap.min.js"></script>
+<script src="static/js/bootstrap-notify.js"></script>
+    
+    <script>
+    
+    var progress = {{progress}};
+    var notified = false;
+    
+    function callAjax() {
+            $.ajax({
+                type: 'GET',
+                url: '/progress',
+                data: $(this).serialize(),
+                dataType: 'json',
+                success: function (data) {
+                	progress = data;
+                }
+            });
+   }
+   
+   
+   $(document).ready(function(){
+	window.setInterval(function(){
+		callAjax()
+	   	var pbar = document.getElementById('pbar');
+	   	pbar.setAttribute("style","width:".concat(progress).concat("%"));
+	   	if(progress == 100 && !notified){
+	   		$.notify({
+				message: "Scan complete, go to Reports",
+				url: "/reports"},{
+				type: 'success'
+			});
+			notified = true;
+		}
+		else if (progress == 0){
+			notified = false;
+	   	}
+	},1000);
+	
+	{% for user in users %}
+		$("#edit-{{user.name}}").hide();
+	{% endfor %}
+	
+	$("#form-create").hide();
+	
+	{% for user in users %}
+		$("#buttonEdit-{{user.name}}").click(function(){
+	  		if ($("#edit-{{user.name}}").is(":visible")){
+	  			$("#edit-{{user.name}}").hide(400);
+	  		}
+	  		else{
+	  			$("#edit-{{user.name}}").show(400);
+	  	}
+  		
+  	});
+  	{% endfor %}
+  	
+  	$("#buttonNew").click(function(){
+  		if ($("#form-create").is(":visible")){
+  			$("#form-create").hide(400);
+  		}
+  		else{
+  			$("#form-create").show(400);
+  		}
+  		
+  	});
+  	
+   });
+   
+   </script>

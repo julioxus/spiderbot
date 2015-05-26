@@ -49,6 +49,8 @@ class ReportGoogle(ndb.Model):
 
 class User(ndb.Model):
     name = ndb.StringProperty()
+    full_name = ndb.StringProperty()
+    group = ndb.StringProperty()
     password = ndb.StringProperty()
     email = ndb.StringProperty()
     n_links = ndb.IntegerProperty(default=-1)

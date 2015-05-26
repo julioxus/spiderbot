@@ -44,6 +44,7 @@
           <ul class="nav navbar-nav">
             <li class="active"><a href="/">Home</a></li>
             <li><a href="/reports">Reports</a></li>
+            <li><a href="/google-reports">Google Reports</a></li>
             <li><a href="/rankings">Rankings</a></li>
             <li><a href="#about">About</a></li>
             <li><a href="#contact">Contact</a></li>
@@ -73,7 +74,7 @@
 	    <form class="form-inline" role="form" method="post" action="/qvalidation">
 		  <div class="form-group" id="input_bar">
 		    <label class="sr-only" for="url">Enter your web page</label>
-		    <input type="text" class="form-control" id="url" name="url"
+		    <input type="url" class="form-control" id="url" name="url" onblur="checkURL(this)"
 		           placeholder="Enter your web page">
 		  </div>
 		  <button type="submit" class="btn-lg btn-default">Go!</button>
@@ -102,7 +103,7 @@
 		  </div>
 		  <div class="form-group">
 		    <label for="onlyDomain">Only domain</label>
-		    <input type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
+		    <input checked="checked" type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
 		  </div>
 		</form>
 	</div>
@@ -160,5 +161,14 @@
 	},1000);
 	
    });
+   
+   function checkURL (abc) {
+    var string = abc.value;
+    if (!~string.indexOf("http")){
+        string = "http://" + string;
+    }
+    abc.value = string;
+    return abc
+	}
    
    </script>

@@ -32,7 +32,10 @@ class MainPage(webapp2.RequestHandler):
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
                 total_pages = user.n_links
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
                 
             except:
@@ -258,11 +261,6 @@ class Validation(webapp2.RequestHandler):
                     content += "Achecker service not working properly"
                     state = 'ERROR'
                     content += '\n\n'
-            
-            '''elif option == 'MOBILE':
-                result = validators.GoogleMobileValidation(f)
-            '''
-                
                 
             retrys -= 1
         
@@ -402,7 +400,10 @@ class Reports(webapp2.RequestHandler):
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
                 total_pages = user.n_links
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
                 
             except:
@@ -436,7 +437,10 @@ class ReportViewer(webapp2.RequestHandler):
         username = self.request.cookies.get("name")
         user = entities.User.query(entities.User.name == username).get()  
         total_pages = user.n_links
-        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        if user.validation_type == 'MOBILE':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        else:
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
             
         template_values={'report':report, 'list_errors': list_errors, 'pages':pages, 'progress':progress}
@@ -460,7 +464,10 @@ class PageViewer(webapp2.RequestHandler):
         username = self.request.cookies.get("name")
         user = entities.User.query(entities.User.name == username).get()  
         total_pages = user.n_links
-        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        if user.validation_type == 'MOBILE':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        else:
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
         
         template_values={'result':report.results[number],'progress':progress}
@@ -473,7 +480,11 @@ class GetScanProgress(webapp2.RequestHandler):
         user = entities.User.query(entities.User.name == username).get()
         
         total_pages = user.n_links
-        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        if user.validation_type == 'MOBILE':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        else:
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            
         progress = int((current_pages * 100)/total_pages)
         
         self.response.write(json.dumps(progress))
@@ -492,7 +503,10 @@ class Rankings(webapp2.RequestHandler):
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
                 total_pages = user.n_links
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
                 
                 reports = entities.Report.query().fetch()
@@ -675,7 +689,10 @@ class GoogleReports(webapp2.RequestHandler):
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
                 total_pages = user.n_links
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
                 
             except:
@@ -686,6 +703,9 @@ class GoogleReports(webapp2.RequestHandler):
             template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/google_reports.html')
             self.response.write(template.render(template_values))
+        
+        else:
+            self.redirect('/login')
         
         
 class GoogleReportViewer(webapp2.RequestHandler):
@@ -707,7 +727,10 @@ class GoogleReportViewer(webapp2.RequestHandler):
         username = self.request.cookies.get("name")
         user = entities.User.query(entities.User.name == username).get()  
         total_pages = user.n_links
-        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        if user.validation_type == 'MOBILE':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        else:
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
         
         
@@ -732,7 +755,10 @@ class GooglePageViewer(webapp2.RequestHandler):
         username = self.request.cookies.get("name")
         user = entities.User.query(entities.User.name == username).get()  
         total_pages = user.n_links
-        current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+        if user.validation_type == 'MOBILE':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        else:
+            current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
         
         content = json.loads(report.results[number].content)
@@ -759,6 +785,84 @@ class GooglePageViewer(webapp2.RequestHandler):
         
         template = JINJA_ENVIRONMENT.get_template('template/google_page_view.html')
         self.response.write(template.render(template_values))
+
+class Users(webapp2.RequestHandler):
+    def get(self):
+        
+        if self.request.cookies.get("name"):
+        
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()  
+            total_pages = user.n_links
+            if user.validation_type == 'MOBILE':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+            else:
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            progress = int((current_pages * 100)/total_pages)
+            
+            users = entities.User.query().fetch()
+            
+            template_values={'progress':progress,'users':users}
+            template = JINJA_ENVIRONMENT.get_template('template/users.html')
+            self.response.write(template.render(template_values))
+        
+        else:
+            self.redirect('/login')
+
+class EditUser(webapp2.RequestHandler):
+    def post(self):
+        
+        full_name = self.request.get("edit-full_name")
+        email = self.request.get("edit-email")
+        group = self.request.get("edit-group")
+        password = self.request.get("edit-password")
+        name = self.request.get("name")
+        
+        user = entities.User.query(entities.User.name==name).get()
+        if full_name != "": user.full_name = full_name
+        if email != "": user.email = email
+        if group != "": user.group = group
+        if password != "": user.password = password
+        
+        user.put()
+        
+        time.sleep(0.1)
+        self.redirect("/users")
+        
+class DeleteUser(webapp2.RequestHandler):
+    def post(self):
+
+        name = self.request.get("name")
+        
+        user = entities.User.query(entities.User.name==name).get()
+        
+        user.key.delete()
+        
+        time.sleep(0.1)
+        self.redirect("/users")
+        
+class CreateUser(webapp2.RequestHandler):
+    def post(self):
+
+        name = self.request.get("create-name")
+        full_name = self.request.get("create-full_name")
+        email = self.request.get("create-email")
+        group = self.request.get("create-group")
+        password = self.request.get("create-password")
+        
+        user = entities.User()
+        
+        user.name = name
+        user.full_name = full_name
+        user.email = email
+        user.group = group
+        user.password = password
+        
+        user.put()
+        
+        time.sleep(0.1)
+        self.redirect("/users")
+        
         
 urls = [('/',MainPage),
         ('/login',login),
@@ -774,6 +878,10 @@ urls = [('/',MainPage),
         ('/google-validation',GoogleValidation),
         ('/google-viewreport',GoogleReportViewer),
         ('/google-viewpage',GooglePageViewer),
+        ('/users',Users),
+        ('/edit-user',EditUser),
+        ('/create-user',CreateUser),
+        ('/delete-user',DeleteUser),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)

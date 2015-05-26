@@ -212,3 +212,19 @@ div#speed table{
 table.urlBlock{
 	margin-left: 20px;
 }
+
+#form-edit{
+	width: 100%;
+}
+
+#form-edit table{
+	width: 100%;
+}
+
+#form-create{
+	width: 100%;
+}
+
+#form-create table{
+	width: 100%;
+}
