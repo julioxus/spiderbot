@@ -14,6 +14,8 @@ from google.appengine.ext import ndb
 from webapp2_extras.config import DEFAULT_VALUE
 import json
 
+DEFAULT_MAX_PAGS = 50
+DEFAULT_DEPTH = 2
 
 # Declaración del entorno de jinja2 y el sistema de templates.
 
@@ -34,6 +36,8 @@ class MainPage(webapp2.RequestHandler):
                 total_pages = user.n_links
                 if user.validation_type == 'MOBILE':
                     current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
                 else:
                     current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
@@ -41,7 +45,7 @@ class MainPage(webapp2.RequestHandler):
             except:
                 error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
             
-            template_values={'progress':progress}
+            template_values={'progress':progress, 'DEFAULT_MAX_PAGS': DEFAULT_MAX_PAGS, 'DEFAULT_DEPTH': DEFAULT_DEPTH}
             template = JINJA_ENVIRONMENT.get_template('template/index.html')
             self.response.write(template.render(template_values))
                 
@@ -78,62 +82,83 @@ class QueueValidation(webapp2.RequestHandler):
     def post(self):
         
         username = self.request.cookies.get("name")
+        user = entities.User.query(entities.User.name == username).get()
         
-        try:
-            root = self.request.get('url')
-            max_pags = self.request.get('max_pags')
-            depth = self.request.get('depth')
-            onlyDomain = self.request.get("onlyDomain")
-            if onlyDomain:
-                onlyDomain = True
-            else:
-                onlyDomain = False
+        if user.lock == False:
+            user.lock = True
+            try:
+                root = self.request.get('url')
+                max_pags = self.request.get('max_pags')
+                depth = self.request.get('depth')
+                onlyDomain = self.request.get("onlyDomain")
+                if onlyDomain:
+                    onlyDomain = True
+                else:
+                    onlyDomain = False
+                    
+                if max_pags == '':
+                    max_pags = DEFAULT_MAX_PAGS
+                if depth == '':
+                    depth = DEFAULT_DEPTH
+                    
+                max_pags = int(max_pags)
+                depth = int(depth)
+                    
                 
-            if max_pags == '':
-                max_pags = 50
-            if depth == '':
-                depth = 1
+                option = self.request.get('optradio')
+                links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
                 
-            max_pags = int(max_pags)
-            depth = int(depth)
+                user.root_link = root
+                user.onlyDomain = onlyDomain
+                user.n_links = len(links)
+                user.validation_type = option
                 
-            links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
-            
-            option = self.request.get('optradio')
-            
-            i = 0
-            while i < len(links):
-                if (option == 'WCAG 2.0' or option == 'MOBILE') and links[i][1] == 'css':
-                    del links[i]
-                    i = -1
-                i+=1
-            
-            user = entities.User.query(entities.User.name == username).get()
-            user.n_links = len(links)
-            user.root_link = root
-            user.validation_type = option
-            user.onlyDomain = onlyDomain
-            
-            if user.lock == False:
-                alphaqueue = taskqueue.Queue('alphaqueue')
-                number = 0
-                user.lock = True
-                user.put()
-                while(user.root_link == ''):
-                    time.sleep(1)
-                for link in links:
-                    #Add the task to the default queue.
-                    if option == 'MOBILE':
-                        alphaqueue.add(taskqueue.Task(url='/google-validation', params={'url': link[0], 'username': username, 'number': number}),False)
-                    else:
-                        alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
-                    number += 1
+                if option == 'RANK':
+                    options = ['HTML', "WCAG 2.0", "AVAILABILITY", "MOBILE"]
+                    max_pags = DEFAULT_MAX_PAGS
+                    depth = DEFAULT_DEPTH
+                    onlyDomain = True
+                    user.n_links = len(links)*len(options)
+                else:
+                    options = [option]
+                    
+                for option in options:
+                    links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
+                    i = 0
+                    deleted = 0
+                    
+                    while i < len(links):
+                        if (option == 'WCAG 2.0' or option == 'MOBILE') and links[i][1] == 'css':
+                            del links[i]
+                            i = -1
+                            deleted += 1
+                        i+=1
+                    
+                    user.n_links -= deleted
+                    
+                    user.put()
+                    
+                    alphaqueue = taskqueue.Queue('alphaqueue')
+                    number = 0
+                    
+                    while(user.root_link == ''):
+                        time.sleep(1)
+                    for link in links:
+                        #Add the task to the default queue.
+                        if option == 'MOBILE':
+                            alphaqueue.add(taskqueue.Task(url='/google-validation', params={'url': link[0], 'username': username, 'number': number}),False)
+                        else:
+                            alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
+                        number += 1
+                        
                 self.redirect('/')
-            else:
-                self.response.write("You already have pending tasks executing, wait and try again later")
-        except:
-            self.response.write("Error: Invalid URL")
-            return None
+                    
+            except:
+                self.response.write("Error: Invalid URL")
+                return None
+            
+        else:
+            self.response.write("You already have pending tasks executing, wait and try again later")
         
 class Validation(webapp2.RequestHandler):
     def post(self):
@@ -402,6 +427,8 @@ class Reports(webapp2.RequestHandler):
                 total_pages = user.n_links
                 if user.validation_type == 'MOBILE':
                     current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
                 else:
                     current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
@@ -439,6 +466,8 @@ class ReportViewer(webapp2.RequestHandler):
         total_pages = user.n_links
         if user.validation_type == 'MOBILE':
             current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        elif user.validation_type == 'RANK':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
         else:
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
@@ -466,6 +495,8 @@ class PageViewer(webapp2.RequestHandler):
         total_pages = user.n_links
         if user.validation_type == 'MOBILE':
             current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        elif user.validation_type == 'RANK':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
         else:
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
@@ -482,9 +513,10 @@ class GetScanProgress(webapp2.RequestHandler):
         total_pages = user.n_links
         if user.validation_type == 'MOBILE':
             current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        elif user.validation_type == 'RANK':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
         else:
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-            
         progress = int((current_pages * 100)/total_pages)
         
         self.response.write(json.dumps(progress))
@@ -691,6 +723,8 @@ class GoogleReports(webapp2.RequestHandler):
                 total_pages = user.n_links
                 if user.validation_type == 'MOBILE':
                     current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
                 else:
                     current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
@@ -729,6 +763,8 @@ class GoogleReportViewer(webapp2.RequestHandler):
         total_pages = user.n_links
         if user.validation_type == 'MOBILE':
             current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+        elif user.validation_type == 'RANK':
+            current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
         else:
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
@@ -796,6 +832,8 @@ class Users(webapp2.RequestHandler):
             total_pages = user.n_links
             if user.validation_type == 'MOBILE':
                 current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+            elif user.validation_type == 'RANK':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
             else:
                 current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
             progress = int((current_pages * 100)/total_pages)

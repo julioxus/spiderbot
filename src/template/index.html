@@ -92,14 +92,17 @@
 		  <label class="radio-inline">
 		  	<input value="MOBILE" type="radio" name="optradio">Google Mobile Check
 		  </label>
+		  <label class="radio-inline">
+		  	<input value="RANK" type="radio" name="optradio">Ranking test
+		  </label>
 		  <br/><br/>
 		  <div class="form-group">
 		    <label for="depth">Depth level</label>
-		    <input type="number" class="form-control" id="depth" name="depth" value="1">
+		    <input type="number" class="form-control" id="depth" name="depth" value="{{DEFAULT_DEPTH}}">
 		  </div>
 		  <div class="form-group">
 		    <label for="max_pags">Max pages</label>
-		    <input type="number" class="form-control" id="max_pags" name="max_pags" value="50">
+		    <input type="number" class="form-control" id="max_pags" name="max_pags" value="{{DEFAULT_MAX_PAGS}}">
 		  </div>
 		  <div class="form-group">
 		    <label for="onlyDomain">Only domain</label>
