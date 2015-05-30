@@ -15,6 +15,11 @@ indexes:
   - name: user
   - name: number
 
+- kind: PageResult
+  properties:
+  - name: validation_type
+  - name: number
+
 - kind: PageResultGoogle
   properties:
   - name: user

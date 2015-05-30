@@ -6,6 +6,7 @@ from google.appengine.ext.db import IntegerProperty
 
 class PageResult(ndb.Model):
     user = ndb.StringProperty()
+    validation_type = ndb.StringProperty()
     url = ndb.StringProperty()
     content = ndb.TextProperty()
     state = ndb.StringProperty()
@@ -26,6 +27,7 @@ class Report(ndb.Model):
     validation_type = ndb.StringProperty()
     user = ndb.StringProperty()
     onlyDomain = ndb.BooleanProperty()
+    isRank = ndb.BooleanProperty(default=False)
     results = ndb.StructuredProperty(PageResult, repeated=True)
     pages = ndb.IntegerProperty()
     error_pages = ndb.IntegerProperty()
@@ -40,6 +42,7 @@ class ReportGoogle(ndb.Model):
     validation_type = ndb.StringProperty()
     user = ndb.StringProperty()
     onlyDomain = ndb.BooleanProperty()
+    isRank = ndb.BooleanProperty(default=False)
     results = ndb.StructuredProperty(PageResultGoogle, repeated=True)
     pages = ndb.IntegerProperty()
     scoreUsability = ndb.FloatProperty()
@@ -58,3 +61,12 @@ class User(ndb.Model):
     validation_type = ndb.StringProperty()
     onlyDomain = ndb.BooleanProperty()
     lock = ndb.BooleanProperty(default=False)
+    
+class ReportRank(ndb.Model):
+    web = ndb.StringProperty()
+    user = ndb.StringProperty()
+    score = ndb.FloatProperty()
+    html_test = ndb.StructuredProperty(Report, repeated=False)
+    wcag2AA_test = ndb.StructuredProperty(Report, repeated=False)
+    availability_test = ndb.StructuredProperty(Report, repeated=False)
+    mobile_test = ndb.StructuredProperty(ReportGoogle, repeated=False)

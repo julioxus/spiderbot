@@ -301,8 +301,102 @@ class Validation(webapp2.RequestHandler):
         page_result.errors = errors
         page_result.number = number
         page_result.list_errors = json.dumps(list_errors)
+        page_result.validation_type = option
         page_result.put()
         
+def insertReport(username,validation_type,isRank):
+    list_errors = []
+    user = entities.User.query(entities.User.name == username).get()
+    qry = entities.PageResult.query(entities.PageResult.user == user.name and entities.PageResult.validation_type == validation_type).order(entities.PageResult.number)
+   
+    report = entities.Report()
+    report.web = user.root_link
+    report.validation_type = validation_type
+    report.onlyDomain = user.onlyDomain
+    report.user = user.name
+    report.results = qry.fetch()
+    report.pages = len(report.results)
+    report.isRank = isRank
+    
+    error_pages = 0
+    errors = 0
+    for result in report.results:
+        if result.state == 'FAIL' or result.state == 'ERROR':
+            error_pages+=1
+        errors += result.errors
+        
+        list_errors.extend(json.loads(result.list_errors))
+
+        # Delete repeated elements in the list
+        i = 0
+        while i < len(list_errors)-1:
+            j = i+1
+            while j < len(list_errors):
+                if (list_errors[i][0] == list_errors[j][0]):
+                    list_errors[i][1].append(list_errors[j][1][0])
+                    list_errors[i][2].append(list_errors[j][2][0])
+                    del list_errors[j]
+                    j = i
+                j+=1
+            i+=1
+        
+    report.error_pages = error_pages
+    report.errors = errors
+    report.list_errors = json.dumps(list_errors);
+
+    report.put()
+        
+    ndb.delete_multi(
+        entities.PageResult.query(entities.PageResult.user == user.name and entities.PageResult.validation_type == validation_type).order(entities.PageResult.number).fetch(keys_only=True)
+    )
+    
+    # Calculate score
+     
+    distinct_errors = (len(json.loads(report.list_errors)))
+    error_pages = float(report.error_pages)
+    pages = float(report.pages)
+    
+    # Calculate the two values used by the score
+    value1 = error_pages / pages # Number of error pages ratio
+     
+    if error_pages > 0:
+        value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
+    else:
+        value2 = 0
+    
+    # Normalize both values
+     
+    # Para el primer valor estableceremos el rango [0 1]
+    # Obviamente nunca habrá mas páginas que páginas con error por tanto el peor caso
+    # seria un resultado de 1 que implica que todas las paginas muestran errores
+    # El mejor caso seria un valor de 0 que implica que no existen paginas con errores
+     
+    # Para tener una puntuación sobre 10 multiplicamos el valor y obtenemos el inverso
+     
+    value1_norm = 10 - value1 * 10
+     
+     
+    # Para el segundo valor establecermos el rango [0 100]
+     
+    # 0 implica que no existen errores distintos y sería la maxima nota
+    # 100 implicaria que existen mas de 100 fallos distintos por página con error
+    # Limitamos en 100 por tanto
+     
+    if value2>=100:
+        value2 = 100
+     
+    # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
+     
+    value2_norm = 10 - value2 / 10;
+     
+    # Ya podemos calcular la puntuacion
+     
+    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
+    
+    report.score = score
+    report.put()
+        
+
       
 class Reports(webapp2.RequestHandler):
     def get(self):
@@ -311,116 +405,40 @@ class Reports(webapp2.RequestHandler):
             username = self.request.cookies.get("name")
             error_message = ''
             reports = ''
+            reportsGoogle = ''
             progress = 0
-            list_errors = []
+            
             try:
+                
                 user = entities.User.query(entities.User.name == username).get()
                 qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
-                if qry.count() == user.n_links:
-                
-                    report = entities.Report()
-                    report.web = user.root_link
-                    report.validation_type = user.validation_type
-                    report.onlyDomain = user.onlyDomain
-                    report.user = user.name
-                    report.results = qry.fetch()
-                    report.pages = len(report.results)
-                    
-                    error_pages = 0
-                    errors = 0
-                    for result in report.results:
-                        if result.state == 'FAIL' or result.state == 'ERROR':
-                            error_pages+=1
-                        errors += result.errors
+                qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
+
+                if user.validation_type == 'MOBILE':
+                    if qry2.count() == user.n_links:
+                        insertGoogleReport(username,False)
                         
-                        list_errors.extend(json.loads(result.list_errors))
-            
-                        # Delete repeated elements in the list
-                        i = 0
-                        while i < len(list_errors)-1:
-                            j = i+1
-                            while j < len(list_errors):
-                                if (list_errors[i][0] == list_errors[j][0]):
-                                    list_errors[i][1].append(list_errors[j][1][0])
-                                    list_errors[i][2].append(list_errors[j][2][0])
-                                    del list_errors[j]
-                                    j = i
-                                j+=1
-                            i+=1
-                        
-                    report.error_pages = error_pages
-                    report.errors = errors
-                    report.list_errors = json.dumps(list_errors);
-                
-                    try:
-                        report.put()
-                        
-                    except:
-                        error_message = 'Error: Unable to update database: too many errors in your website: '+user.root_link
+                        # Reset global variables for user
+                        user.n_links = -1
+                        user.root_link = ''
+                        user.validation_type = ''
+                        user.onlyDomain = None
+                        user.lock = False
+                        user.put()
+                else:
+                    if qry.count() == user.n_links:
+                        insertReport(username,user.validation_type,False)
                     
-                        
-                    ndb.delete_multi(
-                        entities.PageResult.query(entities.PageResult.user == user.name).fetch(keys_only=True)
-                    )
-                    
-                    # Reset global variables for user
-                    user.n_links = -1
-                    user.root_link = ''
-                    user.validation_type = ''
-                    user.onlyDomain = None
-                    user.lock = False
-                    user.put()
-                    
-                    
-                    
-                    # Calculate score
-                     
-                    distinct_errors = (len(json.loads(report.list_errors)))
-                    error_pages = float(report.error_pages)
-                    pages = float(report.pages)
-                    
-                    # Calculate the two values used by the score
-                    value1 = error_pages / pages # Number of error pages ratio
-                     
-                    if error_pages > 0:
-                        value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
-                    else:
-                        value2 = 0
-                    
-                    # Normalize both values
-                     
-                    # Para el primer valor estableceremos el rango [0 1]
-                    # Obviamente nunca habrá mas páginas que páginas con error por tanto el peor caso
-                    # seria un resultado de 1 que implica que todas las paginas muestran errores
-                    # El mejor caso seria un valor de 0 que implica que no existen paginas con errores
-                     
-                    # Para tener una puntuación sobre 10 multiplicamos el valor y obtenemos el inverso
-                     
-                    value1_norm = 10 - value1 * 10
-                     
-                     
-                    # Para el segundo valor establecermos el rango [0 100]
-                     
-                    # 0 implica que no existen errores distintos y sería la maxima nota
-                    # 100 implicaria que existen mas de 100 fallos distintos por página con error
-                    # Limitamos en 100 por tanto
-                     
-                    if value2>=100:
-                        value2 = 100
-                     
-                    # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
-                     
-                    value2_norm = 10 - value2 / 10;
-                     
-                    # Ya podemos calcular la puntuacion
-                     
-                    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
-                    
-                    report.score = score
-                    report.put()
+                        # Reset global variables for user
+                        user.n_links = -1
+                        user.root_link = ''
+                        user.validation_type = ''
+                        user.onlyDomain = None
+                        user.lock = False
+                        user.put()
                                 
                 reports = entities.Report.query().fetch()
-                
+                reportsGoogle = entities.ReportGoogle.query().fetch()
                 
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
@@ -438,9 +456,10 @@ class Reports(webapp2.RequestHandler):
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
+            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/reports.html')
             self.response.write(template.render(template_values))
+        
         else:
             self.redirect('/login')
             
@@ -655,91 +674,43 @@ class GoogleValidation(webapp2.RequestHandler):
         page_result.put()
         
 
-class GoogleReports(webapp2.RequestHandler):
-    def get(self):
-        if self.request.cookies.get("name"):
-            
-            username = self.request.cookies.get("name")
-            error_message = ''
-            reports = ''
-            progress = 0
-            
-            try:
-                user = entities.User.query(entities.User.name == username).get()
-                qry = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
-                if qry.count() == user.n_links:
-                
-                    report = entities.ReportGoogle()
-                    report.web = user.root_link
-                    report.validation_type = user.validation_type
-                    report.onlyDomain = user.onlyDomain
-                    report.user = user.name
-                    report.results = qry.fetch()
-                    report.pages = len(report.results)
-                
-                    try:
-                        report.put()
-                        
-                    except:
-                        error_message = 'Error: Unable to update database: too many errors in your website: '+user.root_link
-                    
-                        
-                    ndb.delete_multi(
-                        entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).fetch(keys_only=True)
-                    )
-                    
-                    # Reset global variables for user
-                    user.n_links = -1
-                    user.root_link = ''
-                    user.validation_type = ''
-                    user.onlyDomain = None
-                    user.lock = False
-                    user.put()
-                    
-                    
-                    
-                    # Calculate score
-                    
-                    scoreUsability = 0
-                    scoreSpeed = 0
-                    
-                    for result in report.results:
-                        content = json.loads(result.content)
-                        scoreUsability = scoreUsability + content['scoreUsability']
-                        scoreSpeed = scoreSpeed + content['scoreSpeed']
-                    
-                    scoreUsability = scoreUsability/len(report.results)
-                    scoreSpeed = scoreSpeed/len(report.results)
-                        
-                    
-                    report.scoreUsability = scoreUsability
-                    report.scoreSpeed = scoreSpeed
-                    report.put()
-                                
-                reports = entities.ReportGoogle.query().fetch()
-                
-                username = self.request.cookies.get("name")
-                user = entities.User.query(entities.User.name == username).get()  
-                total_pages = user.n_links
-                if user.validation_type == 'MOBILE':
-                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
-                elif user.validation_type == 'RANK':
-                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
-                else:
-                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-                progress = int((current_pages * 100)/total_pages)
-                
-            except:
-                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
-                
-            self.response.headers['Content-Type'] = 'text/html'
-            
-            template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
-            template = JINJA_ENVIRONMENT.get_template('template/google_reports.html')
-            self.response.write(template.render(template_values))
+def insertGoogleReport(username,isRank):
+    user = entities.User.query(entities.User.name == username).get()
+    qry = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
+    
+    report = entities.ReportGoogle()
+    report.web = user.root_link
+    report.validation_type = 'MOBILE'
+    report.onlyDomain = user.onlyDomain
+    report.user = user.name
+    report.results = qry.fetch()
+    report.pages = len(report.results)
+    report.isRank = isRank
+
+    report.put()
         
-        else:
-            self.redirect('/login')
+    ndb.delete_multi(
+        entities.PageResultGoogle.query().fetch(keys_only=True)
+    )
+    
+    
+    # Calculate score
+    
+    scoreUsability = 0
+    scoreSpeed = 0
+    
+    for result in report.results:
+        content = json.loads(result.content)
+        scoreUsability = scoreUsability + content['scoreUsability']
+        scoreSpeed = scoreSpeed + content['scoreSpeed']
+    
+    scoreUsability = scoreUsability/len(report.results)
+    scoreSpeed = scoreSpeed/len(report.results)
+        
+    
+    report.scoreUsability = scoreUsability
+    report.scoreSpeed = scoreSpeed
+    report.put()
         
         
 class GoogleReportViewer(webapp2.RequestHandler):
@@ -901,6 +872,84 @@ class CreateUser(webapp2.RequestHandler):
         time.sleep(0.1)
         self.redirect("/users")
         
+class RankingReports(webapp2.RequestHandler):
+    def get(self):
+        
+        if self.request.cookies.get("name"):
+            
+            username = self.request.cookies.get("name")
+            error_message = ''
+            reports = ''
+            reportsGoogle = ''
+            progress = 0
+            
+            try:    
+                user = entities.User.query(entities.User.name == username).get()
+                qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
+                qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
+                
+                if qry.count() + qry2.count() == user.n_links:
+                    insertReport(username,'HTML',True)
+                    insertReport(username,'WCAG 2.0',True)
+                    insertReport(username,'AVAILABILITY',True)
+                    insertGoogleReport(username,True)
+                    
+                    qry3 = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True)
+                    qry4 = entities.ReportGoogle.query(entities.ReportGoogle.user == user.name and entities.ReportGoogle.isRank == True)
+                    
+                    reportRank = entities.ReportRank()
+                    reportRank.web = user.root_link
+                    reportRank.user = user.name
+                    reportRank.score = 0
+                    reportRank.html_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'HTML').get()
+                    reportRank.wcag2AA_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG 2.0').get()
+                    reportRank.availability_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'AVAILABILITY').get()
+                    reportRank.mobile_test = qry4.get()
+                    
+                    reportRank.put()
+                    
+                    ndb.delete_multi(
+                        qry3.fetch(keys_only=True)
+                    )
+                    
+                    ndb.delete_multi(
+                        qry4.fetch(keys_only=True)
+                    )
+                    
+                
+                    # Reset global variables for user
+                    user.n_links = -1
+                    user.root_link = ''
+                    user.validation_type = ''
+                    user.onlyDomain = None
+                    user.lock = False
+                    user.put()
+                
+                reports = entities.Report.query().fetch()
+                reportsGoogle = entities.ReportGoogle.query().fetch()
+                
+                username = self.request.cookies.get("name")
+                user = entities.User.query(entities.User.name == username).get()  
+                total_pages = user.n_links
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
+                
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                
+            self.response.headers['Content-Type'] = 'text/html'
+            
+            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress}
+            template = JINJA_ENVIRONMENT.get_template('template/ranking_reports.html')
+            self.response.write(template.render(template_values))
+        
+        else:
+            self.redirect('/login')
         
 urls = [('/',MainPage),
         ('/login',login),
@@ -912,7 +961,6 @@ urls = [('/',MainPage),
         ('/logout',logout),
         ('/progress',GetScanProgress),
         ('/rankings',Rankings),
-        ('/google-reports',GoogleReports),
         ('/google-validation',GoogleValidation),
         ('/google-viewreport',GoogleReportViewer),
         ('/google-viewpage',GooglePageViewer),
@@ -920,6 +968,7 @@ urls = [('/',MainPage),
         ('/edit-user',EditUser),
         ('/create-user',CreateUser),
         ('/delete-user',DeleteUser),
+        ('/ranking-reports',RankingReports),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
