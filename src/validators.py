@@ -46,11 +46,11 @@ def validate(filename,page_type):
         return ''
 
     
-def validateWCAG(filename):
-    urlfetch.set_default_fetch_deadline(200)
+def validateWCAG(filename,guide):
+    urlfetch.set_default_fetch_deadline(60)
     code = checkAvailability(filename)
     if code >= 200 and code < 300:
-        payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': 'WCAG2-AA', 'output': 'html'}
+        payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': guide, 'output': 'html'}
         encoded_args = urllib.urlencode(payload)
         url = wcag_validator_url + '/?' + encoded_args 
         print url
@@ -81,6 +81,7 @@ def validateWCAG(filename):
         return ''
     
 def checkAvailability(filename):
+    urlfetch.set_default_fetch_deadline(60)
     try:
         response = urllib2.urlopen(filename)
         code = response.getcode()

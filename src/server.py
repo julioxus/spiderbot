@@ -14,7 +14,7 @@ from google.appengine.ext import ndb
 from webapp2_extras.config import DEFAULT_VALUE
 import json
 
-DEFAULT_MAX_PAGS = 50
+DEFAULT_MAX_PAGS = 25
 DEFAULT_DEPTH = 2
 
 # Declaración del entorno de jinja2 y el sistema de templates.
@@ -114,7 +114,7 @@ class QueueValidation(webapp2.RequestHandler):
                 user.validation_type = option
                 
                 if option == 'RANK':
-                    options = ['HTML', "WCAG 2.0", "AVAILABILITY", "MOBILE"]
+                    options = ['HTML', "WCAG2-A", "WCAG2-AA", "CHECK AVAILABILITY", "MOBILE"]
                     max_pags = DEFAULT_MAX_PAGS
                     depth = DEFAULT_DEPTH
                     onlyDomain = True
@@ -128,7 +128,7 @@ class QueueValidation(webapp2.RequestHandler):
                     deleted = 0
                     
                     while i < len(links):
-                        if (option == 'WCAG 2.0' or option == 'MOBILE') and links[i][1] == 'css':
+                        if (option == 'WCAG2-A' or option == 'WCAG2-AA' or option == 'MOBILE') and links[i][1] == 'css':
                             del links[i]
                             i = -1
                             deleted += 1
@@ -144,7 +144,7 @@ class QueueValidation(webapp2.RequestHandler):
                     while(user.root_link == ''):
                         time.sleep(1)
                     for link in links:
-                        #Add the task to the default queue.
+                        #Add the task to the corresponding queue.
                         if option == 'MOBILE':
                             alphaqueue.add(taskqueue.Task(url='/google-validation', params={'url': link[0], 'username': username, 'number': number}),False)
                         else:
@@ -162,9 +162,8 @@ class QueueValidation(webapp2.RequestHandler):
         
 class Validation(webapp2.RequestHandler):
     def post(self):
-        
         state = 'ERROR'
-        retrys = 4
+        retrys = 2
         
         while retrys > 0 and state == 'ERROR':
             
@@ -252,30 +251,39 @@ class Validation(webapp2.RequestHandler):
                 
                 content += '\n\n'
                 
-            elif option == 'WCAG 2.0':
+            elif option == 'WCAG2-A' or option == 'WCAG2-AA':
                 try:
                     out = ''
-                    result = validators.validateWCAG(f)
-                    
+                    if option == 'WCAG2-A':
+                        result = validators.validateWCAG(f,'WCAG2-A')
+                    else:
+                        result = validators.validateWCAG(f,'WCAG2-AA')
                     state = result['state']
                     errors = len(result['errors']['lines'])
                     warnings = len(result['warnings']['lines'])
+                    if warnings > 100: warnings = 100
                     
                     for i in range(0,errors):
-                        line = result['errors']['lines'][i]
-                        message = result['errors']['messages'][i]
-                        code = result['errors']['codes'][i]
-                        out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
-                        {'line': line, 'message': message, 'code': code}
-                        if not ["%s" % message, [line], [f]] in list_errors:
-                            list_errors.append(["%s" % message, [line], [f]])
+                        try:
+                            line = result['errors']['lines'][i]
+                            message = result['errors']['messages'][i]
+                            code = result['errors']['codes'][i]
+                            out += "Error: %(line)s %(message)s \n %(code)s \n\n" % \
+                            {'line': line, 'message': message, 'code': code}
+                            if not ["%s" % message, [line], [f]] in list_errors:
+                                list_errors.append(["%s" % message, [line], [f]])
+                        except:
+                            break
                         
                     for i in range(0,warnings):
-                        line = result['warnings']['lines'][i]
-                        message = result['warnings']['messages'][i]
-                        code = result['warnings']['codes'][i]
-                        out += "Warning: %(line)s %(message)s \n %(code)s \n\n" % \
-                        {'line': line, 'message': message, 'code': code}                      
+                        try:
+                            line = result['warnings']['lines'][i]
+                            message = result['warnings']['messages'][i]
+                            code = result['warnings']['codes'][i]
+                            out += "Warning: %(line)s %(message)s \n %(code)s \n\n" % \
+                            {'line': line, 'message': message, 'code': code}  
+                        except:
+                            break                    
                         
                     out += "\nErrors: %s \n" % errors
                     out += "Warnings: %s" % warnings
@@ -391,7 +399,9 @@ def insertReport(username,validation_type,isRank):
      
     # Ya podemos calcular la puntuacion
      
-    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
+    score = round(0.7 * value1_norm + 0.3 * value2_norm,1)
+    if validation_type == 'CHECK AVAILABILITY':
+        score = round(value1_norm)
     
     report.score = score
     report.put()
@@ -408,12 +418,11 @@ class Reports(webapp2.RequestHandler):
             reportsGoogle = ''
             progress = 0
             
-            try:
-                
+            try: 
                 user = entities.User.query(entities.User.name == username).get()
                 qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
                 qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
-
+    
                 if user.validation_type == 'MOBILE':
                     if qry2.count() == user.n_links:
                         insertGoogleReport(username,False)
@@ -429,6 +438,7 @@ class Reports(webapp2.RequestHandler):
                     if qry.count() == user.n_links:
                         insertReport(username,user.validation_type,False)
                     
+                        
                         # Reset global variables for user
                         user.n_links = -1
                         user.root_link = ''
@@ -436,6 +446,7 @@ class Reports(webapp2.RequestHandler):
                         user.onlyDomain = None
                         user.lock = False
                         user.put()
+                        
                        
                 reports = entities.Report.query().fetch()
                 reportsGoogle = entities.ReportGoogle.query().fetch()
@@ -575,11 +586,13 @@ class Rankings(webapp2.RequestHandler):
                 total_pages = user.n_links
                 if user.validation_type == 'MOBILE':
                     current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
                 else:
                     current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
                 progress = int((current_pages * 100)/total_pages)
                 
-                reports = entities.Report.query().fetch()
+                reportsRank = entities.ReportRank.query().fetch()
                 for r in reports:
                     scores.append(r.score)
                     webs.append(r.web)
@@ -919,8 +932,9 @@ class RankingReports(webapp2.RequestHandler):
                 
                 if qry.count() + qry2.count() == user.n_links:
                     insertReport(username,'HTML',True)
-                    insertReport(username,'WCAG 2.0',True)
-                    insertReport(username,'AVAILABILITY',True)
+                    insertReport(username,'WCAG2-A',True)
+                    insertReport(username,'WCAG2-AA',True)
+                    insertReport(username,'CHECK AVAILABILITY',True)
                     insertGoogleReport(username,True)
                     
                     qry3 = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True)
@@ -931,8 +945,9 @@ class RankingReports(webapp2.RequestHandler):
                     reportRank.user = user.name
                     reportRank.score = 0
                     reportRank.html_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'HTML').get()
-                    reportRank.wcag2AA_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG 2.0').get()
-                    reportRank.availability_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'AVAILABILITY').get()
+                    reportRank.wcag2A_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-A').get()
+                    reportRank.wcag2AA_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-AA').get()
+                    reportRank.availability_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'CHECK AVAILABILITY').get()
                     reportRank.mobile_test = qry4.get()
                     
                     reportRank.put()
@@ -944,8 +959,8 @@ class RankingReports(webapp2.RequestHandler):
                     ndb.delete_multi(
                         qry4.fetch(keys_only=True)
                     )
+                        
                     
-                
                     # Reset global variables for user
                     user.n_links = -1
                     user.root_link = ''
