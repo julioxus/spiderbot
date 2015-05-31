@@ -436,11 +436,10 @@ class Reports(webapp2.RequestHandler):
                         user.onlyDomain = None
                         user.lock = False
                         user.put()
-                                
+                       
                 reports = entities.Report.query().fetch()
                 reportsGoogle = entities.ReportGoogle.query().fetch()
                 
-                username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
                 total_pages = user.n_links
                 if user.validation_type == 'MOBILE':
@@ -469,11 +468,22 @@ class ReportViewer(webapp2.RequestHandler):
         if self.request.cookies.get("name"):
             report_id = long(self.request.get('id'))
             reports = entities.Report.query().fetch()
+            reportsRank = entities.Report.query().fetch()
             report = ''
             for r in reports:
                 if r.key.id() == report_id:
                     report = r
                     break
+            if report == '':
+                reportsRank = entities.ReportRank.query().fetch()
+                for rk in reportsRank:
+                    if rk.html_test.key.id() == report_id:
+                        report = rk.html_test;
+                    elif rk.wcag2AA_test.key.id() == report_id:
+                        report = rk.wcag2AA_test;
+                    elif rk.availability_test.key.id() == report_id:
+                        report = rk.availability_test;
+                
             pages = len(report.results)
         else:
             self.redirect('/login')
@@ -506,6 +516,15 @@ class PageViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
+            if report == '':
+                reportsRank = entities.ReportRank.query().fetch()
+                for rk in reportsRank:
+                    if rk.html_test.key.id() == report_id:
+                        report = rk.html_test;
+                    elif rk.wcag2AA_test.key.id() == report_id:
+                        report = rk.wcag2AA_test;
+                    elif rk.availability_test.key.id() == report_id:
+                        report = rk.availability_test;
         else:
             self.redirect('/login')
         
@@ -724,6 +743,12 @@ class GoogleReportViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
+            if report == '':
+                reportsRank = entities.ReportRank.query().fetch()
+                for rk in reportsRank:
+                    if rk.mobile_test.key.id() == report_id:
+                        report = rk.mobile_test;
+                        
             pages = len(report.results)
         else:
             self.redirect('/login')
@@ -756,6 +781,11 @@ class GooglePageViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
+            if report == '':
+                reportsRank = entities.ReportRank.query().fetch()
+                for rk in reportsRank:
+                    if rk.mobile_test.key.id() == report_id:
+                        report = rk.mobile_test;
         else:
             self.redirect('/login')
         
@@ -880,7 +910,6 @@ class RankingReports(webapp2.RequestHandler):
             username = self.request.cookies.get("name")
             error_message = ''
             reports = ''
-            reportsGoogle = ''
             progress = 0
             
             try:    
@@ -925,8 +954,7 @@ class RankingReports(webapp2.RequestHandler):
                     user.lock = False
                     user.put()
                 
-                reports = entities.Report.query().fetch()
-                reportsGoogle = entities.ReportGoogle.query().fetch()
+                reports = entities.ReportRank.query().fetch()
                 
                 username = self.request.cookies.get("name")
                 user = entities.User.query(entities.User.name == username).get()  
@@ -944,12 +972,64 @@ class RankingReports(webapp2.RequestHandler):
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress}
+            template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
             template = JINJA_ENVIRONMENT.get_template('template/ranking_reports.html')
             self.response.write(template.render(template_values))
         
         else:
             self.redirect('/login')
+            
+class RankingReportViewer(webapp2.RequestHandler):
+    def get(self):
+        
+        if self.request.cookies.get("name"):
+            
+            username = self.request.cookies.get("name")
+            error_message = ''
+            reports = ''
+            reportsGoogle = ''
+            progress = 0
+            rankID = self.request.get("id")
+            
+            #try:
+            rankID = long(rankID)
+            reportsRank = entities.ReportRank.query().fetch()
+            reportRank = ''
+            for r in reportsRank:
+                if r.key.id() == rankID:
+                    reportRank = r
+                    break
+                    
+            reports = []
+            reports.append(reportRank.html_test)
+            reports.append(reportRank.wcag2AA_test)
+            reports.append(reportRank.availability_test)
+            
+            reportsGoogle = []
+            reportsGoogle.append(reportRank.mobile_test)
+            
+            user = entities.User.query(entities.User.name == username).get()  
+            total_pages = user.n_links
+            if user.validation_type == 'MOBILE':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+            elif user.validation_type == 'RANK':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+            else:
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            progress = int((current_pages * 100)/total_pages)
+                
+            #except:
+            #    error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                
+            self.response.headers['Content-Type'] = 'text/html'
+            
+            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress}
+            template = JINJA_ENVIRONMENT.get_template('template/ranking_reports_viewer.html')
+            self.response.write(template.render(template_values))
+        
+        else:
+            self.redirect('/login')
+        
         
 urls = [('/',MainPage),
         ('/login',login),
@@ -969,6 +1049,7 @@ urls = [('/',MainPage),
         ('/create-user',CreateUser),
         ('/delete-user',DeleteUser),
         ('/ranking-reports',RankingReports),
+        ('/ranking-reports-viewer',RankingReportViewer),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)

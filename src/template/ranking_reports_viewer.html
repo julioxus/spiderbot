@@ -62,7 +62,7 @@
     <div class="container">
 
       <div class="starter-template">
-        <h1>Ranking Reports</h1>
+        <h1>Reports</h1>
         {% if error_message %}
 	        <br/>
 	        <div class="alert alert-danger" id="error_message">
@@ -75,18 +75,47 @@
     {% for report in reports %}
     	<div id=report">
     		<table id="report_table">
-    			<td><a href="ranking-reports-viewer?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
+    			<td><a href="viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
     			<td>
 			    	<table id="report_subtable">
 			    		<tr>
 							<th>Web</th>
 							<td><a href="{{report.web}}">{{report.web}}</a></td>
 						</tr>
-							<th>Score</th>
-							<td>{{report.score}}</td>
+							<th>Validation type</th>
+							<td>{{report.validation_type}}</td>
 						<tr>
-							<th>Executed by</th>
-							<td>{{report.user}}</td>
+							<th>Only Domain?</th>
+							<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
+						</tr>
+						<tr>
+							<th>Pages</th>
+							<td>{{report.pages}}</td>
+						</tr>
+					</table>
+				</td>
+			</table>
+		</div>
+	{% endfor %}
+	{% for report in reportsGoogle %}
+    	<div id=report">
+    		<table id="report_table">
+    			<td><a href="google-viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
+    			<td>
+			    	<table id="report_subtable">
+			    		<tr>
+							<th>Web</th>
+							<td><a href="{{report.web}}">{{report.web}}</a></td>
+						</tr>
+							<th>Validation type</th>
+							<td>{{report.validation_type}}</td>
+						<tr>
+							<th>Only Domain?</th>
+							<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
+						</tr>
+						<tr>
+							<th>Pages</th>
+							<td>{{report.pages}}</td>
 						</tr>
 					</table>
 				</td>
