@@ -43,6 +43,9 @@
             <li class="active"><a href="/reports">Reports</a></li>
             <li><a href="/ranking-reports">Ranking Reports</a></li>
             <li><a href="/rankings">Rankings</a></li>
+            {% if user.group == 'Admin' %}
+            <li><a href="/users">Users</a>
+            {% endif %}
             <li><a href="#about">About</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>
@@ -70,58 +73,116 @@
 		  	</div>
 		{% endif %}
       </div>
-    </div><!-- /.container -->
-    <div class="container" id="reports_main_container">
-    {% for report in reports %}
-    	<div id=report">
-    		<table id="report_table">
-    			<td><a href="viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
-    			<td>
-			    	<table id="report_subtable">
-			    		<tr>
-							<th>Web</th>
-							<td><a href="{{report.web}}">{{report.web}}</a></td>
-						</tr>
-							<th>Validation type</th>
-							<td>{{report.validation_type}}</td>
-						<tr>
-							<th>Only Domain?</th>
-							<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
-						</tr>
-						<tr>
-							<th>Pages</th>
-							<td>{{report.pages}}</td>
-						</tr>
-					</table>
-				</td>
-			</table>
+    </div>
+    
+    <div id = "reports_main_container">
+	    <h2>Web standards</h2>
+	    <div class="container" id="reports_subcontainer">
+	    {% for report in reports %}
+	    	{% if not report.isRank and report.validation_type == 'HTML' %}
+	    	<div id=report">
+	    		<table id="report_table">
+	    			<td><a href="viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
+	    			<td>
+				    	<table id="report_subtable">
+				    		<tr>
+								<th>Web</th>
+								<td><a href="{{report.web}}">{{report.web}}</a></td>
+							</tr>
+								<th>Validation type</th>
+								<td>{{report.validation_type}}</td>
+							<tr>
+								<th>Only Domain?</th>
+								<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
+							</tr>
+							<tr>
+								<th>Pages</th>
+								<td>{{report.pages}}</td>
+							</tr>
+							<tr>
+								<th>Score</th>
+								<td>{{report.score}}</td>
+							</tr>
+						</table>
+					</td>
+				</table>
+				<button id="delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+			</div>
+			{% endif %}
+		{% endfor %}
 		</div>
-	{% endfor %}
-	{% for report in reportsGoogle %}
-    	<div id=report">
-    		<table id="report_table">
-    			<td><a href="google-viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
-    			<td>
-			    	<table id="report_subtable">
-			    		<tr>
-							<th>Web</th>
-							<td><a href="{{report.web}}">{{report.web}}</a></td>
-						</tr>
-							<th>Validation type</th>
-							<td>{{report.validation_type}}</td>
-						<tr>
-							<th>Only Domain?</th>
-							<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
-						</tr>
-						<tr>
-							<th>Pages</th>
-							<td>{{report.pages}}</td>
-						</tr>
-					</table>
-				</td>
-			</table>
+		
+		<h2>Accesibility</h2>
+	    <div class="container" id="reports_subcontainer">
+	    {% for report in reports %}
+	    	{% if not report.isRank and (report.validation_type == 'WCAG2-A' or report.validation_type == 'WCAG2-AA' or report.validation_type == 'CHECK AVAILABILITY') %}
+	    	<div id=report">
+	    		<table id="report_table">
+	    			<td><a href="viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
+	    			<td>
+				    	<table id="report_subtable">
+				    		<tr>
+								<th>Web</th>
+								<td><a href="{{report.web}}">{{report.web}}</a></td>
+							</tr>
+								<th>Validation type</th>
+								<td>{{report.validation_type}}</td>
+							<tr>
+								<th>Only Domain?</th>
+								<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
+							</tr>
+							<tr>
+								<th>Pages</th>
+								<td>{{report.pages}}</td>
+							</tr>
+							<tr>
+								<th>Score</th>
+								<td>{{report.score}}</td>
+							</tr>
+						</table>
+					</td>
+				</table>
+				<button id="delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+			</div>
+			{% endif %}
+		{% endfor %}
 		</div>
-	{% endfor %}
+		
+		<h2>Usability</h2>
+		<div class="container" id="reports_subcontainer">
+		{% for report in reportsGoogle %}
+			{% if not report.isRank %}
+	    	<div id=report">
+	    		<table id="report_table">
+	    			<td><a href="google-viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
+	    			<td>
+				    	<table id="report_subtable">
+				    		<tr>
+								<th>Web</th>
+								<td><a href="{{report.web}}">{{report.web}}</a></td>
+							</tr>
+								<th>Validation type</th>
+								<td>{{report.validation_type}}</td>
+							<tr>
+								<th>Only Domain?</th>
+								<td>{% if report.onlyDomain %} Yes {% else %} No {% endif %}</td>
+							</tr>
+							<tr>
+								<th>Pages</th>
+								<td>{{report.pages}}</td>
+							</tr>
+							<tr>
+								<th>Score</th>
+								<td>{{report.score}}</td>
+							</tr>
+						</table>
+					</td>
+				</table>
+				<button id="delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+			</div>
+			{% endif %}
+		{% endfor %}
+		</div>
 	</div>
 
     <!-- Bootstrap core JavaScript

@@ -43,6 +43,9 @@
             <li class="active"><a href="/reports">Reports</a></li>
             <li><a href="/ranking-reports">Ranking Reports</a></li>
             <li><a href="/rankings">Rankings</a></li>
+            {% if user.group == 'Admin' %}
+            <li><a href="/users">Users</a>
+            {% endif %}
             <li><a href="#about">About</a></li>
             <li><a href="#contact">Contact</a></li>
           </ul>

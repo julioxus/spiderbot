@@ -319,6 +319,15 @@ def insertReport(username,validation_type,isRank):
     user = entities.User.query(entities.User.name == username).get()
     qry = entities.PageResult.query(entities.PageResult.user == user.name and entities.PageResult.validation_type == validation_type).order(entities.PageResult.number)
    
+    
+    # Update if rank report of this web already exists
+    if isRank:
+        report = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == validation_type and entities.Report.web == user.root_link ).get()
+        if report is None:
+            report = entities.Report()
+    else:
+        report = entities.Report()
+
     report = entities.Report()
     report.web = user.root_link
     report.validation_type = validation_type
@@ -468,7 +477,7 @@ class Reports(webapp2.RequestHandler):
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress}
+            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/reports.html')
             self.response.write(template.render(template_values))
         
@@ -505,7 +514,7 @@ class ReportViewer(webapp2.RequestHandler):
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
             
-        template_values={'report':report, 'list_errors': list_errors, 'pages':pages, 'progress':progress}
+        template_values={'report':report, 'list_errors': list_errors, 'pages':pages, 'progress':progress, 'user': user}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
         
@@ -534,7 +543,7 @@ class PageViewer(webapp2.RequestHandler):
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
         
-        template_values={'result':report.results[number],'progress':progress}
+        template_values={'result':report.results[number],'progress':progress, 'user':user}
         template = JINJA_ENVIRONMENT.get_template('template/page_view.html')
         self.response.write(template.render(template_values))
         
@@ -560,7 +569,6 @@ class Rankings(webapp2.RequestHandler):
         if self.request.cookies.get("name"):
             self.response.headers['Content-Type'] = 'text/html'
             progress = 0
-            reports = []
             scores = []
             webs = []
             
@@ -577,7 +585,7 @@ class Rankings(webapp2.RequestHandler):
                 progress = int((current_pages * 100)/total_pages)
                 
                 reportsRank = entities.ReportRank.query().fetch()
-                for r in reports:
+                for r in reportsRank:
                     scores.append(r.score)
                     webs.append(r.web)
                 
@@ -587,7 +595,7 @@ class Rankings(webapp2.RequestHandler):
         else:
             self.redirect('/login')
         
-        template_values={'progress':progress,'scores':scores,'webs':webs}
+        template_values={'progress':progress,'scores':scores,'webs':webs, 'user': user}
         template = JINJA_ENVIRONMENT.get_template('template/rankings.html')
         self.response.write(template.render(template_values))
     
@@ -693,8 +701,14 @@ class GoogleValidation(webapp2.RequestHandler):
 def insertGoogleReport(username,isRank):
     user = entities.User.query(entities.User.name == username).get()
     qry = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
-    
-    report = entities.ReportGoogle()
+       
+    # Update if rank report of this web already exists
+    if isRank:
+        report = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link ).get()
+        if report == None:
+            report = entities.ReportGoogle()
+    else:
+        report = entities.ReportGoogle()
     report.web = user.root_link
     report.validation_type = 'MOBILE'
     report.onlyDomain = user.onlyDomain
@@ -712,8 +726,8 @@ def insertGoogleReport(username,isRank):
     
     # Calculate score
     
-    scoreUsability = 0
-    scoreSpeed = 0
+    scoreUsability = 0.0
+    scoreSpeed = 0.0
     
     for result in report.results:
         content = json.loads(result.content)
@@ -724,13 +738,13 @@ def insertGoogleReport(username,isRank):
     scoreSpeed = scoreSpeed/len(report.results)
     
     # Scale results from 100 to 10
-    scoreUsability /= 10
-    scoreSpeed /= 10
+    scoreUsability /= 10.0
+    scoreSpeed /= 10.0
         
     
     report.scoreUsability = scoreUsability
     report.scoreSpeed = scoreSpeed
-    report.score = (scoreSpeed * scoreUsability)**(1/2.0)
+    report.score = round(((scoreSpeed * scoreUsability)**(1/2.0)),1)
     report.put()
         
         
@@ -763,7 +777,7 @@ class GoogleReportViewer(webapp2.RequestHandler):
         progress = int((current_pages * 100)/total_pages)
         
         
-        template_values={'report':report, 'pages':pages, 'progress':progress}
+        template_values={'report':report, 'pages':pages, 'progress':progress, 'user': user}
         template = JINJA_ENVIRONMENT.get_template('template/google_report_view.html')
         self.response.write(template.render(template_values))
         
@@ -809,7 +823,8 @@ class GooglePageViewer(webapp2.RequestHandler):
             'types': types,
             'summaries': summaries,
             'urlBlocks': urlBlocks,
-            'progress' : progress
+            'progress' : progress,
+            'user': user
         }
         
         template = JINJA_ENVIRONMENT.get_template('template/google_page_view.html')
@@ -821,21 +836,24 @@ class Users(webapp2.RequestHandler):
         if self.request.cookies.get("name"):
         
             username = self.request.cookies.get("name")
-            user = entities.User.query(entities.User.name == username).get()  
-            total_pages = user.n_links
-            if user.validation_type == 'MOBILE':
-                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
-            elif user.validation_type == 'RANK':
-                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+            user = entities.User.query(entities.User.name == username).get()
+            if(user.group == 'Admin'):
+                total_pages = user.n_links
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
+                
+                users = entities.User.query().fetch()
+                
+                template_values={'progress':progress,'users':users}
+                template = JINJA_ENVIRONMENT.get_template('template/users.html')
+                self.response.write(template.render(template_values))
             else:
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-            progress = int((current_pages * 100)/total_pages)
-            
-            users = entities.User.query().fetch()
-            
-            template_values={'progress':progress,'users':users}
-            template = JINJA_ENVIRONMENT.get_template('template/users.html')
-            self.response.write(template.render(template_values))
+                self.response.write("Unauthorized")
         
         else:
             self.redirect('/login')
@@ -894,6 +912,10 @@ class CreateUser(webapp2.RequestHandler):
         time.sleep(0.1)
         self.redirect("/users")
         
+class DeleteReport(webapp2.RequestHandler):
+    def post(self):
+        print 'hola'
+        
 class RankingReports(webapp2.RequestHandler):
     def get(self):
         
@@ -904,72 +926,70 @@ class RankingReports(webapp2.RequestHandler):
             reports = ''
             progress = 0
             
-            try:    
-                user = entities.User.query(entities.User.name == username).get()
-                qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
-                qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
-                    
-                if qry.count() + qry2.count() == user.n_links:
+            #try:    
+            user = entities.User.query(entities.User.name == username).get()
+            qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
+            qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
                 
-                    insertReport(username,'HTML',True)
-                    insertReport(username,'WCAG2-A',True)
-                    insertReport(username,'WCAG2-AA',True)
-                    insertReport(username,'CHECK AVAILABILITY',True)
-                    insertGoogleReport(username,True)
+            if qry.count() + qry2.count() == user.n_links:
+            
+                insertReport(username,'HTML',True)
+                insertReport(username,'WCAG2-A',True)
+                insertReport(username,'WCAG2-AA',True)
+                insertReport(username,'CHECK AVAILABILITY',True)
+                insertGoogleReport(username,True)
+            
+                html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
+                wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
+                wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
+                availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get() 
+                mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
                 
-                        
-                    qry3 = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True)
-                    qry4 = entities.ReportGoogle.query(entities.ReportGoogle.user == user.name and entities.ReportGoogle.isRank == True)
-                    
-                    html_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'HTML').get()
-                    wcag2A_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-A').get()
-                    wcag2AA_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-AA').get()
-                    availability_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'CHECK AVAILABILITY').get() 
-                    mobile_test = qry4.get()          
-                    
-                    reportRank = entities.ReportRank()
-                    reportRank.web = user.root_link
-                    reportRank.user = user.name
-                    reportRank.html_test = str(html_test.key.id())
-                    reportRank.wcag2A_test = str(wcag2A_test.key.id())
-                    reportRank.wcag2AA_test = str(wcag2AA_test.key.id())
-                    reportRank.availability_test = str(availability_test.key.id())
-                    reportRank.mobile_test = str(mobile_test.key.id())
-                    
-                    # Para calcular la puntuación usamos la media geométrica de las puntuaciones de cada informe
-                    
-                    reportRank.score = (html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score)**(1/5.0)
-                    #print type(mobile_test.score)
-                    
-                    reportRank.put()
+                reportRank = entities.ReportRank()
+                reportRank.web = user.root_link
+                reportRank.user = user.name
+                reportRank.html_test = str(html_test.key.id())
+                reportRank.wcag2A_test = str(wcag2A_test.key.id())
+                reportRank.wcag2AA_test = str(wcag2AA_test.key.id())
+                reportRank.availability_test = str(availability_test.key.id())
+                reportRank.mobile_test = str(mobile_test.key.id())
                 
-                    # Reset global variables for user
-                    user.n_links = -1
-                    user.root_link = ''
-                    user.validation_type = ''
-                    user.onlyDomain = None
-                    user.lock = False
-                    user.put()
+                # Para calcular la puntuación usamos la media geométrica de las puntuaciones de cada informe
                 
-                reports = entities.ReportRank.query().fetch()
+                reportRank.score = (html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score * mobile_test.score)**(1/5.0)
+                #print type(mobile_test.score)
                 
-                username = self.request.cookies.get("name")
-                user = entities.User.query(entities.User.name == username).get()  
-                total_pages = user.n_links
-                if user.validation_type == 'MOBILE':
-                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
-                elif user.validation_type == 'RANK':
-                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
-                else:
-                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-                progress = int((current_pages * 100)/total_pages)
+                reportRank.put()
+            
+                # Reset global variables for user
+                user.n_links = -1
+                user.root_link = ''
+                user.validation_type = ''
+                user.onlyDomain = None
+                user.lock = False
+                user.put()
                 
-            except:
-                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                self.redirect('ranking-reports')
+            
+            reports = entities.ReportRank.query().fetch()
+            
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()  
+            total_pages = user.n_links
+            if user.validation_type == 'MOBILE':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+            elif user.validation_type == 'RANK':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+            else:
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            progress = int((current_pages * 100)/total_pages)
+                
+            #except:
+            #    error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'error_message': error_message, 'progress':progress}
+            template_values={'reports':reports, 'error_message': error_message, 'progress':progress, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/ranking_reports.html')
             self.response.write(template.render(template_values))
         
@@ -988,40 +1008,40 @@ class RankingReportViewer(webapp2.RequestHandler):
             progress = 0
             rankID = self.request.get("id")
             
-            #try:
-            rankID = long(rankID)
-            reportsRank = entities.ReportRank.query().fetch()
-            reportRank = ''
-            for r in reportsRank:
-                if r.key.id() == rankID:
-                    reportRank = r
-                    break
-                    
-            reports = []
-            reports.append(entities.Report.get_by_id(long(reportRank.html_test)))
-            reports.append(entities.Report.get_by_id(long(reportRank.wcag2A_test)))
-            reports.append(entities.Report.get_by_id(long(reportRank.wcag2AA_test)))
-            reports.append(entities.Report.get_by_id(long(reportRank.availability_test)))
-            
-            reportsGoogle = []
-            reportsGoogle.append(entities.ReportGoogle.get_by_id(long(reportRank.mobile_test)))
-            
-            user = entities.User.query(entities.User.name == username).get()  
-            total_pages = user.n_links
-            if user.validation_type == 'MOBILE':
-                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
-            elif user.validation_type == 'RANK':
-                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
-            else:
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-            progress = int((current_pages * 100)/total_pages)
+            try:
+                rankID = long(rankID)
+                reportsRank = entities.ReportRank.query().fetch()
+                reportRank = ''
+                for r in reportsRank:
+                    if r.key.id() == rankID:
+                        reportRank = r
+                        break
+                        
+                reports = []
+                reports.append(entities.Report.get_by_id(long(reportRank.html_test)))
+                reports.append(entities.Report.get_by_id(long(reportRank.wcag2A_test)))
+                reports.append(entities.Report.get_by_id(long(reportRank.wcag2AA_test)))
+                reports.append(entities.Report.get_by_id(long(reportRank.availability_test)))
                 
-            #except:
-            #    error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                reportsGoogle = []
+                reportsGoogle.append(entities.ReportGoogle.get_by_id(long(reportRank.mobile_test)))
+                
+                user = entities.User.query(entities.User.name == username).get()  
+                total_pages = user.n_links
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
+                
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress}
+            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress, 'user':user}
             template = JINJA_ENVIRONMENT.get_template('template/ranking_reports_viewer.html')
             self.response.write(template.render(template_values))
         
