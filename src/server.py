@@ -926,66 +926,66 @@ class RankingReports(webapp2.RequestHandler):
             reports = ''
             progress = 0
             
-            #try:    
-            user = entities.User.query(entities.User.name == username).get()
-            qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
-            qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
+            try:    
+                user = entities.User.query(entities.User.name == username).get()
+                qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
+                qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
+                    
+                if qry.count() + qry2.count() == user.n_links:
                 
-            if qry.count() + qry2.count() == user.n_links:
-            
-                insertReport(username,'HTML',True)
-                insertReport(username,'WCAG2-A',True)
-                insertReport(username,'WCAG2-AA',True)
-                insertReport(username,'CHECK AVAILABILITY',True)
-                insertGoogleReport(username,True)
-            
-                html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
-                wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
-                wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
-                availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get() 
-                mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
+                    insertReport(username,'HTML',True)
+                    insertReport(username,'WCAG2-A',True)
+                    insertReport(username,'WCAG2-AA',True)
+                    insertReport(username,'CHECK AVAILABILITY',True)
+                    insertGoogleReport(username,True)
                 
-                reportRank = entities.ReportRank()
-                reportRank.web = user.root_link
-                reportRank.user = user.name
-                reportRank.html_test = str(html_test.key.id())
-                reportRank.wcag2A_test = str(wcag2A_test.key.id())
-                reportRank.wcag2AA_test = str(wcag2AA_test.key.id())
-                reportRank.availability_test = str(availability_test.key.id())
-                reportRank.mobile_test = str(mobile_test.key.id())
+                    html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
+                    wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
+                    wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
+                    availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get() 
+                    mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
+                    
+                    reportRank = entities.ReportRank()
+                    reportRank.web = user.root_link
+                    reportRank.user = user.name
+                    reportRank.html_test = str(html_test.key.id())
+                    reportRank.wcag2A_test = str(wcag2A_test.key.id())
+                    reportRank.wcag2AA_test = str(wcag2AA_test.key.id())
+                    reportRank.availability_test = str(availability_test.key.id())
+                    reportRank.mobile_test = str(mobile_test.key.id())
+                    
+                    # Para calcular la puntuación usamos la media geométrica de las puntuaciones de cada informe
+                    
+                    reportRank.score = (html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score * mobile_test.score)**(1/5.0)
+                    #print type(mobile_test.score)
+                    
+                    reportRank.put()
                 
-                # Para calcular la puntuación usamos la media geométrica de las puntuaciones de cada informe
+                    # Reset global variables for user
+                    user.n_links = -1
+                    user.root_link = ''
+                    user.validation_type = ''
+                    user.onlyDomain = None
+                    user.lock = False
+                    user.put()
+                    
+                    self.redirect('ranking-reports')
                 
-                reportRank.score = (html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score * mobile_test.score)**(1/5.0)
-                #print type(mobile_test.score)
+                reports = entities.ReportRank.query().fetch()
                 
-                reportRank.put()
-            
-                # Reset global variables for user
-                user.n_links = -1
-                user.root_link = ''
-                user.validation_type = ''
-                user.onlyDomain = None
-                user.lock = False
-                user.put()
+                username = self.request.cookies.get("name")
+                user = entities.User.query(entities.User.name == username).get()  
+                total_pages = user.n_links
+                if user.validation_type == 'MOBILE':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+                elif user.validation_type == 'RANK':
+                    current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+                else:
+                    current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+                progress = int((current_pages * 100)/total_pages)
                 
-                self.redirect('ranking-reports')
-            
-            reports = entities.ReportRank.query().fetch()
-            
-            username = self.request.cookies.get("name")
-            user = entities.User.query(entities.User.name == username).get()  
-            total_pages = user.n_links
-            if user.validation_type == 'MOBILE':
-                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
-            elif user.validation_type == 'RANK':
-                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
-            else:
-                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
-            progress = int((current_pages * 100)/total_pages)
-                
-            #except:
-            #    error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+            except:
+                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
             self.response.headers['Content-Type'] = 'text/html'
             
