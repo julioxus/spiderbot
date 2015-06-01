@@ -45,7 +45,7 @@ class MainPage(webapp2.RequestHandler):
             except:
                 error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
             
-            template_values={'progress':progress, 'DEFAULT_MAX_PAGS': DEFAULT_MAX_PAGS, 'DEFAULT_DEPTH': DEFAULT_DEPTH}
+            template_values={'progress':progress, 'DEFAULT_MAX_PAGS': DEFAULT_MAX_PAGS, 'DEFAULT_DEPTH': DEFAULT_DEPTH, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/index.html')
             self.response.write(template.render(template_values))
                 
@@ -163,7 +163,7 @@ class QueueValidation(webapp2.RequestHandler):
 class Validation(webapp2.RequestHandler):
     def post(self):
         state = 'ERROR'
-        retrys = 2
+        retrys = 3
         
         while retrys > 0 and state == 'ERROR':
             
@@ -261,6 +261,8 @@ class Validation(webapp2.RequestHandler):
                     state = result['state']
                     errors = len(result['errors']['lines'])
                     warnings = len(result['warnings']['lines'])
+                    
+                    # Limit warnings to save disk space
                     if warnings > 100: warnings = 100
                     
                     for i in range(0,errors):
@@ -485,15 +487,6 @@ class ReportViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
-            if report == '':
-                reportsRank = entities.ReportRank.query().fetch()
-                for rk in reportsRank:
-                    if rk.html_test.key.id() == report_id:
-                        report = rk.html_test;
-                    elif rk.wcag2AA_test.key.id() == report_id:
-                        report = rk.wcag2AA_test;
-                    elif rk.availability_test.key.id() == report_id:
-                        report = rk.availability_test;
                 
             pages = len(report.results)
         else:
@@ -527,15 +520,6 @@ class PageViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
-            if report == '':
-                reportsRank = entities.ReportRank.query().fetch()
-                for rk in reportsRank:
-                    if rk.html_test.key.id() == report_id:
-                        report = rk.html_test;
-                    elif rk.wcag2AA_test.key.id() == report_id:
-                        report = rk.wcag2AA_test;
-                    elif rk.availability_test.key.id() == report_id:
-                        report = rk.availability_test;
         else:
             self.redirect('/login')
         
@@ -738,10 +722,15 @@ def insertGoogleReport(username,isRank):
     
     scoreUsability = scoreUsability/len(report.results)
     scoreSpeed = scoreSpeed/len(report.results)
+    
+    # Scale results from 100 to 10
+    scoreUsability /= 10
+    scoreSpeed /= 10
         
     
     report.scoreUsability = scoreUsability
     report.scoreSpeed = scoreSpeed
+    report.score = (scoreSpeed * scoreUsability)**(1/2.0)
     report.put()
         
         
@@ -756,11 +745,6 @@ class GoogleReportViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
-            if report == '':
-                reportsRank = entities.ReportRank.query().fetch()
-                for rk in reportsRank:
-                    if rk.mobile_test.key.id() == report_id:
-                        report = rk.mobile_test;
                         
             pages = len(report.results)
         else:
@@ -794,11 +778,6 @@ class GooglePageViewer(webapp2.RequestHandler):
                 if r.key.id() == report_id:
                     report = r
                     break
-            if report == '':
-                reportsRank = entities.ReportRank.query().fetch()
-                for rk in reportsRank:
-                    if rk.mobile_test.key.id() == report_id:
-                        report = rk.mobile_test;
         else:
             self.redirect('/login')
         
@@ -929,38 +908,41 @@ class RankingReports(webapp2.RequestHandler):
                 user = entities.User.query(entities.User.name == username).get()
                 qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
                 qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
-                
+                    
                 if qry.count() + qry2.count() == user.n_links:
+                
                     insertReport(username,'HTML',True)
                     insertReport(username,'WCAG2-A',True)
                     insertReport(username,'WCAG2-AA',True)
                     insertReport(username,'CHECK AVAILABILITY',True)
                     insertGoogleReport(username,True)
-                    
+                
+                        
                     qry3 = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True)
                     qry4 = entities.ReportGoogle.query(entities.ReportGoogle.user == user.name and entities.ReportGoogle.isRank == True)
+                    
+                    html_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'HTML').get()
+                    wcag2A_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-A').get()
+                    wcag2AA_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-AA').get()
+                    availability_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'CHECK AVAILABILITY').get() 
+                    mobile_test = qry4.get()          
                     
                     reportRank = entities.ReportRank()
                     reportRank.web = user.root_link
                     reportRank.user = user.name
-                    reportRank.score = 0
-                    reportRank.html_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'HTML').get()
-                    reportRank.wcag2A_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-A').get()
-                    reportRank.wcag2AA_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-AA').get()
-                    reportRank.availability_test = entities.Report.query(entities.Report.user == user.name and entities.Report.isRank == True and entities.Report.validation_type == 'CHECK AVAILABILITY').get()
-                    reportRank.mobile_test = qry4.get()
+                    reportRank.html_test = str(html_test.key.id())
+                    reportRank.wcag2A_test = str(wcag2A_test.key.id())
+                    reportRank.wcag2AA_test = str(wcag2AA_test.key.id())
+                    reportRank.availability_test = str(availability_test.key.id())
+                    reportRank.mobile_test = str(mobile_test.key.id())
+                    
+                    # Para calcular la puntuación usamos la media geométrica de las puntuaciones de cada informe
+                    
+                    reportRank.score = (html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score)**(1/5.0)
+                    #print type(mobile_test.score)
                     
                     reportRank.put()
-                    
-                    ndb.delete_multi(
-                        qry3.fetch(keys_only=True)
-                    )
-                    
-                    ndb.delete_multi(
-                        qry4.fetch(keys_only=True)
-                    )
-                        
-                    
+                
                     # Reset global variables for user
                     user.n_links = -1
                     user.root_link = ''
@@ -1016,12 +998,13 @@ class RankingReportViewer(webapp2.RequestHandler):
                     break
                     
             reports = []
-            reports.append(reportRank.html_test)
-            reports.append(reportRank.wcag2AA_test)
-            reports.append(reportRank.availability_test)
+            reports.append(entities.Report.get_by_id(long(reportRank.html_test)))
+            reports.append(entities.Report.get_by_id(long(reportRank.wcag2A_test)))
+            reports.append(entities.Report.get_by_id(long(reportRank.wcag2AA_test)))
+            reports.append(entities.Report.get_by_id(long(reportRank.availability_test)))
             
             reportsGoogle = []
-            reportsGoogle.append(reportRank.mobile_test)
+            reportsGoogle.append(entities.ReportGoogle.get_by_id(long(reportRank.mobile_test)))
             
             user = entities.User.query(entities.User.name == username).get()  
             total_pages = user.n_links

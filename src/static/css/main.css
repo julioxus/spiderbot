@@ -1,6 +1,12 @@
 body {
   padding-top: 50px;
 }
+
+table, table td, table th{
+	border: 1px solid;
+	padding: 10px;
+}
+
 .starter-template {
   padding: 40px 15px;
   text-align: center;
@@ -9,6 +15,16 @@ body {
 #web_input_form{
 	text-align: center;
 	margin: auto;
+}
+
+#web_input_form table{
+	text-align: center;
+	margin: auto;
+}
+
+
+#web_input_form table td{
+	text-align: left;
 }
 
 #web_input_form label{
@@ -76,13 +92,11 @@ body {
 
 #report_table td, #report_table tr, #report_table th{
 	text-align: center;
-	border: 1px solid;
 }
 
 #report_subtable td, #report_subtable tr, #report_subtable th{
 	margin: auto;
 	width: 700px;
-	padding: 10px;
 }
 
 #report{
@@ -99,9 +113,7 @@ body {
 }
 
 .report_results_table tr, .report_results_table th, .report_results_table td{
-	border: 1px solid;
 	text-align: center;
-	padding: 10px;
 }
 
 #reportResultsContainer{
@@ -126,15 +138,11 @@ body {
 }
 
 .errorTable tr, .errorTable th, .errorTable td{
-	border: 1px solid;
 	text-align: center;
-	padding: 10px;
 }
 
 .errorSubtable tr, .errorSubtable th, .errorSubtable td{
-	border: 1px solid;
 	text-align: center;
-	padding: 10px;
 }
 
 .errorSubtable{
@@ -182,7 +190,7 @@ body {
 	height: 5px;
 }
 
-div#usability table th, td{
+div#usability table th, div#usability table td{
 	padding: 10px;
 	border: 1px solid;
 }
@@ -191,18 +199,8 @@ div#usability table{
 	margin-bottom: 10px;
 }
 
-div#usability table th, td{
-	padding: 10px;
-	border: 1px solid;
-}
-
 div#usability table{
 	margin-bottom: 10px;
-}
-
-div#speed table th, td{
-	padding: 10px;
-	border: 1px solid;
 }
 
 div#speed table{

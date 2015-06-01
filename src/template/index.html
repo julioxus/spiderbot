@@ -77,39 +77,75 @@
 		    <input type="url" class="form-control" id="url" name="url" onblur="checkURL(this)"
 		           placeholder="Enter your web page">
 		  </div>
-		  <button type="submit" class="btn-lg btn-default">Go!</button>
+		  <button type="submit" class="btn btn-default">Go!</button>
 		  <br/><br/>
-		  <label class="radio-inline">
-	      	<input value="HTML" type="radio" name="optradio" checked>Validate HTML/XHTML/CSS
-		  </label>
-		  <label class="radio-inline">
-		  	<input value="WCAG2-A" type="radio" name="optradio">Validate WCAG 2.0-A
-		  </label>
-		  <label class="radio-inline">
-		  	<input value="WCAG2-AA" type="radio" name="optradio">Validate WCAG 2.0-AA
-		  </label>
-		  <label class="radio-inline">
-		  	<input value="CHECK AVAILABILITY" type="radio" name="optradio">Check availability
-		  </label>
-		  <label class="radio-inline">
-		  	<input value="MOBILE" type="radio" name="optradio">Google Mobile Check
-		  </label>
-		  <label class="radio-inline">
-		  	<input value="RANK" type="radio" name="optradio">Ranking test
-		  </label>
-		  <br/><br/>
-		  <div class="form-group">
-		    <label for="depth">Depth level</label>
-		    <input type="number" class="form-control" id="depth" name="depth" value="{{DEFAULT_DEPTH}}">
-		  </div>
-		  <div class="form-group">
-		    <label for="max_pags">Max pages</label>
-		    <input type="number" class="form-control" id="max_pags" name="max_pags" value="{{DEFAULT_MAX_PAGS}}">
-		  </div>
-		  <div class="form-group">
-		    <label for="onlyDomain">Only domain</label>
-		    <input checked="checked" type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
-		  </div>
+		  <table>
+			  <tr>
+			  	<th>Web standards</th>
+			  	<th>Accesibility</th>
+			  	<th>Usability</th>
+			  	{% if user.group == 'Admin' %}
+			  	<th>Ranking</th>
+			  	{% endif %}
+			  </tr>
+			  <tr>
+				  <td>
+				  <label class="radio-inline">
+			      	<input value="HTML" type="radio" name="optradio" checked>Validate HTML/XHTML/CSS
+				  </label>
+				  </td>
+				  <td>
+				  <label class="radio-inline">
+				  	<input value="WCAG2-A" type="radio" name="optradio">Validate WCAG 2.0-A
+				  </label>
+				  </td>
+				  <td>
+				  <label class="radio-inline">
+				  	<input value="MOBILE" type="radio" name="optradio">Google Mobile Check
+				  </label>
+				  </td>
+				  {% if user.group == 'Admin' %}
+				  <td>
+				  <label class="radio-inline">
+				  	<input value="RANK" type="radio" name="optradio">Ranking test
+				  </label>
+				  </td>
+				  {% endif %}
+			  </tr>
+			  <tr>
+			  	  <td/>
+			  	  <td>
+			  	  <label class="radio-inline">
+				  	<input value="WCAG2-AA" type="radio" name="optradio">Validate WCAG 2.0-AA
+				  </label>
+				  </td>
+				  <td/>
+				  {% if user.group == 'Admin' %}<td/>{% endif %}
+			  </tr>
+			  <tr>
+			  	<td/>
+			  	<td>
+				  <label class="radio-inline">
+					  	<input value="CHECK AVAILABILITY" type="radio" name="optradio">Check availability
+				  </label>
+				  </td>
+				  <td/>
+				  {% if user.group == 'Admin' %}<td/>{% endif %}
+			  </tr>
+			</table>
+			  <br/><br/>
+			  <div class="form-group">
+			    <label for="depth">Depth level</label>
+			    <input type="number" class="form-control" id="depth" name="depth" value="{{DEFAULT_DEPTH}}">
+			  </div>
+			  <div class="form-group">
+			    <label for="max_pags">Max pages</label>
+			    <input type="number" class="form-control" id="max_pags" name="max_pags" value="{{DEFAULT_MAX_PAGS}}">
+			  </div>
+			  <div class="form-group">
+			    <label for="onlyDomain">Only domain</label>
+			    <input checked="checked" type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
+			  </div>
 		</form>
 	</div>
 
