@@ -848,6 +848,7 @@ class Users(webapp2.RequestHandler):
     def get(self):
         
         error_message = ''
+        progress = 0
         if self.request.cookies.get("name"):
             try:
                 username = self.request.cookies.get("name")
@@ -983,14 +984,24 @@ class RankingReports(webapp2.RequestHandler):
                     insertReport(username,'WCAG2-AA',True)
                     insertReport(username,'CHECK AVAILABILITY',True)
                     insertGoogleReport(username,True)
-                
-                    time.sleep(5)
-                
+                    
                     html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
+                    while html_test.web != user.root_link:
+                        html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
+                        
                     wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
+                    while wcag2A_test.web != user.root_link:
+                        wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
                     wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
-                    availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get() 
+                    while wcag2AA_test.web != user.root_link:
+                        wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
+                    availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get()
+                    while availability_test.web != user.root_link:
+                        availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get()
+                        
                     mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
+                    while mobile_test.web != user.root_link:
+                        mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
                     
                     reportRank = entities.ReportRank()
                     reportRank.web = user.root_link
