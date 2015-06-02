@@ -63,15 +63,15 @@
 	    <span class="sr-only"></span>
 	  </div>
 	</div>
-
     <div class="container">
+    {% if error_message %}
+        <br/>
+        <div class="alert alert-danger" id="error_message">
+			<p>{{error_message}}</p>
+	  	</div>
+	{% endif %}
 		<div id="chart"></div>
-		<div id="sliders">
-			<table>
-				<tr><td>Alpha Angle</td><td><input id="R0" type="range" min="0" max="45" value="15"/> <span id="R0-value" class="value"></span></td></tr>
-				<tr><td>Beta Angle</td><td><input id="R1" type="range" min="0" max="45" value="15"/> <span id="R1-value" class="value"></span></td></tr>
-			</table>
-		</div>
+		
     </div><!-- /.container -->
 
     <!-- Bootstrap core JavaScript
@@ -144,14 +144,14 @@
 			margin: 75,
 			options3d: {
 				enabled: true,
-				alpha: 15,
-				beta: 15,
+				alpha: 0,
+				beta: 0,
 				depth: 50,
 				viewDistance: 25
 			}
 		},
 		title: {
-			text: 'Ranking HTML/XHTML/CSS'
+			text: 'Rankings'
 		},
 		subtitle: {
 			text: ''
@@ -171,6 +171,7 @@
 		yAxis: {
 			allowDecimals: false,
 			min: 0,
+			max: 10,
 			title: {
 				text: 'Score'
 			}
@@ -182,9 +183,49 @@
 			}
 		},
 		series: [{
-			name: 'Score',
+			name: 'Global Score',
 			data: [
 			{% for i in scores %}
+				{{i}},
+			{% endfor %}
+			]
+		},
+		{
+			name: 'HTML Score',
+			data: [
+			{% for i in html_scores %}
+				{{i}},
+			{% endfor %}
+			]
+		},
+		{
+			name: 'WCAG2-A Score',
+			data: [
+			{% for i in wcag2A_scores %}
+				{{i}},
+			{% endfor %}
+			]
+		},
+		{
+			name: 'WCAG2-AA Score',
+			data: [
+			{% for i in wcag2AA_scores %}
+				{{i}},
+			{% endfor %}
+			]
+		},
+		{
+			name: 'Availability Score',
+			data: [
+			{% for i in availability_scores %}
+				{{i}},
+			{% endfor %}
+			]
+		},
+		{
+			name: 'Mobile Score',
+			data: [
+			{% for i in mobile_scores %}
 				{{i}},
 			{% endfor %}
 			]

@@ -79,8 +79,12 @@
 	    <h2>Web standards</h2>
 	    <div class="container" id="reports_subcontainer">
 	    {% for report in reports %}
-	    	{% if not report.isRank and report.validation_type == 'HTML' %}
+	    	{% if not report.isRank and report.validation_type == 'HTML' and (user.group == 'Admin' or report.user == user.name) %}
 	    	<div id=report">
+	    		<button id="button-delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+	    		<form id="form-delete-report-{{report.key.id()}}" action="/delete-report" method="POST">
+	    			<input id="id" name="id" type="hidden" value="{{report.key.id()}}"/>
+	    		</form>
 	    		<table id="report_table">
 	    			<td><a href="viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
 	    			<td>
@@ -106,7 +110,6 @@
 						</table>
 					</td>
 				</table>
-				<button id="delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
 			</div>
 			{% endif %}
 		{% endfor %}
@@ -115,8 +118,12 @@
 		<h2>Accesibility</h2>
 	    <div class="container" id="reports_subcontainer">
 	    {% for report in reports %}
-	    	{% if not report.isRank and (report.validation_type == 'WCAG2-A' or report.validation_type == 'WCAG2-AA' or report.validation_type == 'CHECK AVAILABILITY') %}
+	    	{% if not report.isRank and (report.validation_type == 'WCAG2-A' or report.validation_type == 'WCAG2-AA' or report.validation_type == 'CHECK AVAILABILITY')  and (user.group == 'Admin' or report.user == user.name) %}
 	    	<div id=report">
+	    		<button id="button-delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+	    		<form id="form-delete-report-{{report.key.id()}}" action="/delete-report" method="POST">
+	    			<input id="id" name="id" type="hidden" value="{{report.key.id()}}"/>
+	    		</form>
 	    		<table id="report_table">
 	    			<td><a href="viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
 	    			<td>
@@ -142,7 +149,6 @@
 						</table>
 					</td>
 				</table>
-				<button id="delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
 			</div>
 			{% endif %}
 		{% endfor %}
@@ -151,8 +157,12 @@
 		<h2>Usability</h2>
 		<div class="container" id="reports_subcontainer">
 		{% for report in reportsGoogle %}
-			{% if not report.isRank %}
+			{% if not report.isRank and (user.group == 'Admin' or report.user == user.name) %}
 	    	<div id=report">
+	    		<button id="button-delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+	    		<form id="form-delete-report-{{report.key.id()}}" action="/delete-report" method="POST">
+	    			<input id="id" name="id" type="hidden" value="{{report.key.id()}}"/>
+	    		</form>
 	    		<table id="report_table">
 	    			<td><a href="google-viewreport?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
 	    			<td>
@@ -178,7 +188,6 @@
 						</table>
 					</td>
 				</table>
-				<button id="delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
 			</div>
 			{% endif %}
 		{% endfor %}
@@ -236,6 +245,22 @@
 			notified = false;
 	   	}
 	},1000);
+	
+	{% for report in reports %}
+	  	$("#button-delete-report-{{report.key.id()}}").click(function(){
+	  		if (confirm("Are you sure?")) {
+	  			$("#form-delete-report-{{report.key.id()}}").submit();
+	  		}
+  		});
+  	{% endfor %}
+  	
+  	{% for report in reportsGoogle %}
+	  	$("#button-delete-report-{{report.key.id()}}").click(function(){
+	  		if (confirm("Are you sure?")) {
+	  			$("#form-delete-report-{{report.key.id()}}").submit();
+	  		}
+  		});
+  	{% endfor %}
 	
    });
    

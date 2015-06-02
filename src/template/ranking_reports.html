@@ -77,6 +77,12 @@
     <div class="container" id="reports_main_container">
     {% for report in reports %}
     	<div id=report">
+    		{% if user.group == 'Admin' %}
+    		<button id="button-delete-report-{{report.key.id()}}" class="btn btn-danger">Delete</button>
+    		<form id="form-delete-report-{{report.key.id()}}" action="/delete-ranking-report" method="POST">
+	    		<input id="id" name="id" type="hidden" value="{{report.key.id()}}"/>
+	    	</form>
+	    	{% endif %}
     		<table id="report_table">
     			<td><a href="ranking-reports-viewer?id={{report.key.id()}}"><img class="report_image" src="static/images/report.png"/></a></td>
     			<td>
@@ -149,6 +155,14 @@
 			notified = false;
 	   	}
 	},1000);
+	
+	{% for report in reports %}
+	  	$("#button-delete-report-{{report.key.id()}}").click(function(){
+	  		if (confirm("Are you sure?")) {
+	  			$("#form-delete-report-{{report.key.id()}}").submit();
+	  		}
+  		});
+  	{% endfor %}
 	
    });
    

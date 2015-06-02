@@ -64,6 +64,12 @@
 
       <div class="starter-template">
         <h1>Users</h1>
+        {% if error_message %}
+	        <br/>
+	        <div class="alert alert-danger" id="error_message">
+				<p>{{error_message}}</p>
+		  	</div>
+		{% endif %}
          <div class="container" id="reports_main_container">
          	<table>
          		<tr>
