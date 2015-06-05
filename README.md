@@ -27,5 +27,6 @@ La aplicación realizará las siguientes tareas:
 * [X] Realizar informe de los análisis
 * [X] Programar escaneo automatizado de una web completa
 * [X] Registro y seguimiento de usuarios que podrán programar sus propios escaneos automatizados
+* [X] Validar experiencia de usuario y velocidad de carga en versiones móviles
 
 La aplicación, además, deberá estar desplegada en un servicio cloud gratuito como Google App Engine.
