@@ -80,16 +80,21 @@
 	         			<table>
 	         			<tr>
 		         			<td><label for="edit-full_name">Full name:</label></td>
-				         	<td><input type="text" id="edit-full_name" name="edit-full_name"/></td>
+				         	<td><input type="text" id="edit-full_name" name="edit-full_name" value="{{user.full_name}}"/></td>
 			         	</tr>
 			         	<tr>
 		         			<td><label for="edit-email">Email:</label></td>
-			         		<td><input type="email" id="edit-email" name="edit-email"/></td>
+			         		<td><input type="email" id="edit-email" name="edit-email" value="{{user.email}}"/></td>
 	         			<tr>
 	         				<td><label for="edit-group">Group:</label>
 		         			<td><select id="edit-group" name="edit-group">
+		         			{% if user.group == 'User' %}
+		         			<option value="User" selected>User</option>
+		         			<option value="Admin">Admin</option>
+		         			{% else %}
 		         			<option value="User">User</option>
-							<option value="Admin">Admin</option>
+		         			<option value="Admin" selected>Admin</option>
+		         			{% endif %}
 							</select></td>
 		         		</tr>
 		         		<tr>
@@ -108,15 +113,15 @@
        	{% endfor %}
        	</table>
        	<div class="container" id="form-create">
-       		<form id="form-create" role="form" action="/create-user" method="post">
+       		<form id="form-create" name="form-create" role="form" action="/create-user" method="post" onsubmit="return validateForm()">
        			<table>
        			<tr>
         			<td><label for="create-name">User name:</label></td>
-	         	<td><input type="text" id="create-name" name="create-name"/></td>
+	         	<td><input type="text" id="create-name" name="create-name" required/></td>
          	</tr>
        			<tr>
         			<td><label for="create-full_name">Full name:</label></td>
-	         	<td><input type="text" id="create-full_name" name="create-full_name"/></td>
+	         	<td><input type="text" id="create-full_name" name="create-full_name" required/></td>
          	</tr>
          	<tr>
         			<td><label for="create-email">Email:</label></td>
@@ -130,7 +135,7 @@
         		</tr>
         		<tr>
         			<td><label for="create-password">Password:</label></td>
-         		<td><input type="password" id="create-password" name="create-password"/></td>
+         		<td><input type="password" id="create-password" name="create-password" required/></td>
         		</tr>
         		<tr>
         			<td colspan="2"><button type="submit" class="btn btn-default">Submit</button></td>
@@ -230,5 +235,21 @@
   	});
   	
    });
+   
+   function validateForm(){
+
+        cadena = "^[a-z]+@[a-z]+\.[a-z]{2,4}$"; 
+        reCorreo = new RegExp(cadena);
+
+        if (!(document.forms["form-create"]["create-email"].value.match(reCorreo))) {
+        
+            document.forms["form-create"]["create-email"].focus();
+            alert('Enter a valid email address');
+
+            return false;
+        }
+        
+        return true;
+ 	}
    
    </script>

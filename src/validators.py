@@ -108,23 +108,27 @@ def getAllLinks(root,depth,max_pages,onlyDomain):
     
     for i in range(0,depth):
         
-        #connect to a URL
-        website = urllib2.urlopen(links[i][0])
-        
-        #read html code
-        html = website.read()
+        try:
+            #connect to a URL
+            website = urllib2.urlopen(links[i][0])
+            #read html code
+            html = website.read()
+        except urllib2.HTTPError, error:
+            html = error.read()
+            print html
         
         dom =  lxml.html.fromstring(html)
         
         document_links = dom.xpath('//a/@href | //link/@href')
         css_links = dom.xpath('//*[@rel="stylesheet"]/@href')
+        nofollow_links = dom.xpath('//*[@rel="nofollow"]/@href')
         
         for link in document_links: # select the url in href for all a and link tags(links)
             
             if not(link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or \
             link.endswith('.ico') or link.endswith('.gif') or link.endswith('.iso') or link.endswith('.mp3') or \
             link.endswith('.pdf') or  link.endswith('.xml') or len(link) > 450 or ('mailto' in link) or \
-            root == link+'/' or '#' in link or 'JavaScript:' in link or 'javascript:' in link):
+            root == link+'/' or ('#' in link) or ('JavaScript:' in link) or ('javascript:' in link) or (link in nofollow_links)):
                        
                 if link in css_links:
                     page_type = 'css'

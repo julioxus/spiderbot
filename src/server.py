@@ -90,76 +90,81 @@ class QueueValidation(webapp2.RequestHandler):
         
         if user.lock == False:
             user.lock = True
-            try:
-                root = self.request.get('url')
-                max_pags = self.request.get('max_pags')
-                depth = self.request.get('depth')
-                onlyDomain = self.request.get("onlyDomain")
-                if onlyDomain:
-                    onlyDomain = True
-                else:
-                    onlyDomain = False
-                    
-                if max_pags == '':
-                    max_pags = DEFAULT_MAX_PAGS
-                if depth == '':
-                    depth = DEFAULT_DEPTH
-                    
-                max_pags = int(max_pags)
-                depth = int(depth)
-                    
+            
+            root = self.request.get('url')
+            max_pags = self.request.get('max_pags')
+            depth = self.request.get('depth')
+            onlyDomain = self.request.get("onlyDomain")
+            if onlyDomain:
+                onlyDomain = True
+            else:
+                onlyDomain = False
                 
-                option = self.request.get('optradio')
-                links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
+            if max_pags == '':
+                max_pags = DEFAULT_MAX_PAGS
+            if depth == '':
+                depth = DEFAULT_DEPTH
                 
-                user.root_link = root
-                user.onlyDomain = onlyDomain
-                user.n_links = len(links)
-                user.validation_type = option
+            max_pags = int(max_pags)
+            depth = int(depth)
                 
-                if option == 'RANK':
-                    options = ['HTML', "WCAG2-A", "WCAG2-AA", "CHECK AVAILABILITY", "MOBILE"]
-                    max_pags = DEFAULT_MAX_PAGS
-                    depth = DEFAULT_DEPTH
-                    onlyDomain = True
-                    user.n_links = len(links)*len(options)
-                else:
-                    options = [option]
-                    
-                for option in options:
+            
+            option = self.request.get('optradio')
+            retrys = 3
+            while retrys > 0:
+                try:
                     links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
-                    i = 0
-                    deleted = 0
+                    retrys = 0
+                except:
+                    retrys-=1
+                    if retrys == 0:
+                        self.response.write("Error getting links")
+                        return None
+            
+            user.root_link = root
+            user.onlyDomain = onlyDomain
+            user.n_links = len(links)
+            user.validation_type = option
+            
+            if option == 'RANK':
+                options = ['HTML', "WCAG2-A", "WCAG2-AA", "CHECK AVAILABILITY", "MOBILE"]
+                max_pags = DEFAULT_MAX_PAGS
+                depth = DEFAULT_DEPTH
+                onlyDomain = True
+                user.n_links = len(links)*len(options)
+            else:
+                options = [option]
+                
+            for option in options:
+                links = validators.getAllLinks(root, depth, max_pags, onlyDomain)
+                i = 0
+                deleted = 0
+                
+                while i < len(links):
+                    if (option == 'WCAG2-A' or option == 'WCAG2-AA' or option == 'MOBILE') and links[i][1] == 'css':
+                        del links[i]
+                        i = -1
+                        deleted += 1
+                    i+=1
+                
+                user.n_links -= deleted
+                
+                user.put()
+                
+                alphaqueue = taskqueue.Queue('alphaqueue')
+                number = 0
+                
+                while(user.root_link == ''):
+                    time.sleep(1)
+                for link in links:
+                    #Add the task to the corresponding queue.
+                    if option == 'MOBILE':
+                        alphaqueue.add(taskqueue.Task(url='/google-validation', params={'url': link[0], 'username': username, 'number': number}),False)
+                    else:
+                        alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
+                    number += 1
                     
-                    while i < len(links):
-                        if (option == 'WCAG2-A' or option == 'WCAG2-AA' or option == 'MOBILE') and links[i][1] == 'css':
-                            del links[i]
-                            i = -1
-                            deleted += 1
-                        i+=1
-                    
-                    user.n_links -= deleted
-                    
-                    user.put()
-                    
-                    alphaqueue = taskqueue.Queue('alphaqueue')
-                    number = 0
-                    
-                    while(user.root_link == ''):
-                        time.sleep(1)
-                    for link in links:
-                        #Add the task to the corresponding queue.
-                        if option == 'MOBILE':
-                            alphaqueue.add(taskqueue.Task(url='/google-validation', params={'url': link[0], 'username': username, 'number': number}),False)
-                        else:
-                            alphaqueue.add(taskqueue.Task(url='/validation', params={'url': link[0], 'page_type': link[1], 'optradio': option, 'username': username, 'number': number}),False)
-                        number += 1
-                        
-                self.redirect('/')
-                    
-            except:
-                self.response.write("Error: Unable to open this URL")
-                return None
+            self.redirect('/')
             
         else:
             self.response.write("You already have pending tasks executing, wait and try again later")
@@ -168,8 +173,9 @@ class Validation(webapp2.RequestHandler):
     def post(self):
         state = 'ERROR'
         retrys = 3
+        option = self.request.get('optradio')
         
-        while retrys > 0 and state == 'ERROR':
+        while retrys > 0 and state == 'ERROR' or (state == 'FAIL' and option == 'CHECK AVAILABILITY') :
             
             content = ''
             
@@ -184,7 +190,6 @@ class Validation(webapp2.RequestHandler):
             warnings = 0
             list_errors = []
             
-            option = self.request.get('optradio')
             
             if option == 'HTML':
                 out = ''
@@ -326,10 +331,8 @@ def insertReport(username,validation_type,isRank):
     report = None
     # Update if rank report of this web already exists
     if isRank:
-        reports = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == validation_type).fetch()
-        for r in reports:
-            if r.web == user.root_link:
-                report = r
+        report = entities.Report.query(entities.Report.isRank == True).filter(entities.Report.validation_type == validation_type).filter(entities.Report.web == user.root_link).get()
+                
         if report is None:
             report = entities.Report()
     else:
@@ -373,7 +376,7 @@ def insertReport(username,validation_type,isRank):
     report.put()
         
     ndb.delete_multi(
-        entities.PageResult.query((entities.PageResult.user == user.name) and (entities.PageResult.validation_type == validation_type)).fetch(keys_only=True)
+        entities.PageResult.query(entities.PageResult.user == user.name).filter(entities.PageResult.validation_type == validation_type).fetch(keys_only=True)
     )
     
     # Calculate score
@@ -879,7 +882,7 @@ class Users(webapp2.RequestHandler):
             except:
                 error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
-            template_values={'head':head, 'footer':footer, 'progress':progress,'users':users, 'error_message':error_message}
+            template_values={'head':head, 'footer':footer, 'progress':progress,'users':users, 'user':user, 'error_message':error_message}
             template = JINJA_ENVIRONMENT.get_template('template/users.html')
             self.response.write(template.render(template_values))
                 
@@ -927,18 +930,21 @@ class CreateUser(webapp2.RequestHandler):
         group = self.request.get("create-group")
         password = self.request.get("create-password")
         
-        user = entities.User()
+        if(entities.User.query(entities.User.name == name).get() is None):
+            user = entities.User()
+            
+            user.name = name
+            user.full_name = full_name
+            user.email = email
+            user.group = group
+            user.password = password
+            
+            user.put()
         
-        user.name = name
-        user.full_name = full_name
-        user.email = email
-        user.group = group
-        user.password = password
-        
-        user.put()
-        
-        time.sleep(0.1)
-        self.redirect("/users")
+            time.sleep(0.1)
+            self.redirect("/users")
+        else:
+            self.response.write("That user already exists")
         
 class DeleteReport(webapp2.RequestHandler):
     def post(self):
@@ -986,7 +992,7 @@ class RankingReports(webapp2.RequestHandler):
                 qry = entities.PageResult.query(entities.PageResult.user == user.name).order(entities.PageResult.number)
                 qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
                     
-                if qry.count() + qry2.count() == user.n_links:
+                if qry.count() + qry2.count() == user.n_links and user.validation_type == 'RANK':
                     
                     insertReport(username,'HTML',True)
                     insertReport(username,'WCAG2-A',True)
@@ -1167,6 +1173,29 @@ class CancelValidation(webapp2.RequestHandler):
         else:
             self.redirect('/login')
         
+class NotFound(webapp2.RequestHandler):
+    def get(self):
+        
+        error_message = 'The page you are trying to access does not exist'
+        if self.request.cookies.get("name"):
+            
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()
+            
+            total_pages = user.n_links
+            if user.validation_type == 'MOBILE':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count()
+            elif user.validation_type == 'RANK':
+                current_pages = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).count() + entities.PageResult.query(entities.PageResult.user == user.name).count()
+            else:
+                current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
+            progress = int((current_pages * 100)/total_pages)
+            
+        self.response.headers['Content-Type'] = 'text/html'
+            
+        template_values={'head': head, 'footer': footer, 'error_message': error_message, 'progress':progress, 'user':user}
+        template = JINJA_ENVIRONMENT.get_template('template/notfound.html')
+        self.response.write(template.render(template_values))
         
 urls = [('/',MainPage),
         ('/login',login),
@@ -1190,6 +1219,7 @@ urls = [('/',MainPage),
         ('/delete-report',DeleteReport),
         ('/delete-ranking-report',DeleteRankingReport),
         ('/cancel-validation',CancelValidation),
+        ('/.*', NotFound),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)
