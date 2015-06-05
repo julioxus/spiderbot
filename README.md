@@ -12,6 +12,7 @@ Aplicación web que valida los documentos web conforme a los formatos estándare
 [Spiderbot](http://spiderbot-ugr.appspot.com/)
 
 Usuario de prueba: test
+
 Contraseña: 1234
 
 
