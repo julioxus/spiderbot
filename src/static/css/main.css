@@ -69,6 +69,11 @@ table, table td, table th{
 	background-repeat: no-repeat;
 	background-size: 300px;
 	background-position: 400px;
+	margin-bottom: 50px;
+}
+
+#google_reports_container table{
+	overflow: auto;
 }
 
 #rankingPositionNumber{
@@ -136,9 +141,10 @@ table, table td, table th{
 	width: 800px;
 }
 
-#button-logout{
+#button-logout, #button-cancel{
 	float: right;
 	margin-top: 8px;
+	margin-right: 10px;
 }
 
 .errorTable tr, .errorTable th, .errorTable td{
@@ -238,4 +244,23 @@ table.urlBlock{
 
 #buttonNew{
 	float: left;
+}
+
+#footer {
+  height: 60px;
+  background-color: #101010;
+  margin-top: 100px;
+  width: 100%;
+  height: 100px;
+  padding: 20px;
+}
+
+#score_row{
+	font-style: italic;
+	font-size: 300%;
+	border: 1px solid;
+	padding : 20px;
+	margin-top: 10px;
+	margin-bottom: 10px;
+	background-color: #E6E6E6
 }

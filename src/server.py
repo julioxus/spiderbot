@@ -13,6 +13,7 @@ import entities
 from google.appengine.ext import ndb
 from webapp2_extras.config import DEFAULT_VALUE
 import json
+from entities import ReportRank, PageResult, PageResultGoogle
 
 DEFAULT_MAX_PAGS = 25
 DEFAULT_DEPTH = 2
@@ -23,6 +24,9 @@ JINJA_ENVIRONMENT = jinja2.Environment(
     loader=jinja2.FileSystemLoader(os.path.dirname(__file__)),
     extensions=['jinja2.ext.autoescape'],
     autoescape=True)
+
+head = JINJA_ENVIRONMENT.get_template('template/head.html').render()
+footer = JINJA_ENVIRONMENT.get_template('template/footer.html').render()
 
 
 class MainPage(webapp2.RequestHandler):
@@ -45,7 +49,7 @@ class MainPage(webapp2.RequestHandler):
             except:
                 error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
             
-            template_values={'progress':progress, 'DEFAULT_MAX_PAGS': DEFAULT_MAX_PAGS, 'DEFAULT_DEPTH': DEFAULT_DEPTH, 'user': user}
+            template_values={'head': head, 'footer': footer, 'progress':progress, 'DEFAULT_MAX_PAGS': DEFAULT_MAX_PAGS, 'DEFAULT_DEPTH': DEFAULT_DEPTH, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/index.html')
             self.response.write(template.render(template_values))
                 
@@ -154,7 +158,7 @@ class QueueValidation(webapp2.RequestHandler):
                 self.redirect('/')
                     
             except:
-                self.response.write("Error: Invalid URL")
+                self.response.write("Error: Unable to open this URL")
                 return None
             
         else:
@@ -319,10 +323,13 @@ def insertReport(username,validation_type,isRank):
     user = entities.User.query(entities.User.name == username).get()
     qry = entities.PageResult.query(entities.PageResult.user == user.name and entities.PageResult.validation_type == validation_type).order(entities.PageResult.number)
    
-    
+    report = None
     # Update if rank report of this web already exists
     if isRank:
-        report = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == validation_type and entities.Report.web == user.root_link ).get()
+        reports = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == validation_type).fetch()
+        for r in reports:
+            if r.web == user.root_link:
+                report = r
         if report is None:
             report = entities.Report()
     else:
@@ -366,7 +373,7 @@ def insertReport(username,validation_type,isRank):
     report.put()
         
     ndb.delete_multi(
-        entities.PageResult.query(entities.PageResult.user == user.name and entities.PageResult.validation_type == validation_type).order(entities.PageResult.number).fetch(keys_only=True)
+        entities.PageResult.query((entities.PageResult.user == user.name) and (entities.PageResult.validation_type == validation_type)).fetch(keys_only=True)
     )
     
     # Calculate score
@@ -410,7 +417,7 @@ def insertReport(username,validation_type,isRank):
      
     # Ya podemos calcular la puntuacion
      
-    score = round(0.7 * value1_norm + 0.3 * value2_norm,1)
+    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
     if validation_type == 'CHECK AVAILABILITY':
         score = round(value1_norm)
     
@@ -477,7 +484,7 @@ class Reports(webapp2.RequestHandler):
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress, 'user': user}
+            template_values={'head': head, 'footer': footer, 'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/reports.html')
             self.response.write(template.render(template_values))
         
@@ -514,7 +521,7 @@ class ReportViewer(webapp2.RequestHandler):
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
             
-        template_values={'report':report, 'list_errors': list_errors, 'pages':pages, 'progress':progress, 'user': user}
+        template_values={'head': head, 'footer': footer, 'report':report, 'list_errors': list_errors, 'pages':pages, 'progress':progress, 'user': user}
         template = JINJA_ENVIRONMENT.get_template('template/report_view.html')
         self.response.write(template.render(template_values))
         
@@ -543,7 +550,7 @@ class PageViewer(webapp2.RequestHandler):
             current_pages = entities.PageResult.query(entities.PageResult.user == user.name).count()
         progress = int((current_pages * 100)/total_pages)
         
-        template_values={'result':report.results[number],'progress':progress, 'user':user}
+        template_values={'head':head, 'footer':footer, 'result':report.results[number],'progress':progress, 'user':user}
         template = JINJA_ENVIRONMENT.get_template('template/page_view.html')
         self.response.write(template.render(template_values))
         
@@ -607,7 +614,7 @@ class Rankings(webapp2.RequestHandler):
         else:
             self.redirect('/login')
         
-        template_values={'progress':progress,'scores':scores, 'html_scores': html_scores, 'wcag2A_scores': wcag2A_scores,
+        template_values={'head': head, 'footer': footer, 'progress':progress,'scores':scores, 'html_scores': html_scores, 'wcag2A_scores': wcag2A_scores,
                          'wcag2AA_scores': wcag2AA_scores, 'availability_scores': availability_scores,
                          'mobile_scores': mobile_scores, 'webs':webs, 'error_message':error_message, 'user': user}
         template = JINJA_ENVIRONMENT.get_template('template/rankings.html')
@@ -693,7 +700,7 @@ class GoogleValidation(webapp2.RequestHandler):
         number = int(self.request.get("number"))
         user = entities.User.query(entities.User.name == username).get()
         
-        content = { 'scoreUsability': scoreUsability,
+        content = { 'head': head, 'footer': footer, 'scoreUsability': scoreUsability,
             'scoreSpeed': scoreSpeed,
             'ruleNames': ruleNames,
             'ruleImpacts': ruleImpacts,
@@ -734,7 +741,7 @@ def insertGoogleReport(username,isRank):
     report.put()
         
     ndb.delete_multi(
-        entities.PageResultGoogle.query().fetch(keys_only=True)
+        entities.PageResultGoogle.query(PageResultGoogle.user == user.name).fetch(keys_only=True)
     )
     
     
@@ -756,8 +763,8 @@ def insertGoogleReport(username,isRank):
     scoreSpeed /= 10.0
         
     
-    report.scoreUsability = scoreUsability
-    report.scoreSpeed = scoreSpeed
+    report.scoreUsability = round(scoreUsability,1)
+    report.scoreSpeed = round(scoreSpeed,1)
     report.score = round(((scoreSpeed * scoreUsability)**(1/2.0)),1)
     report.put()
         
@@ -791,7 +798,7 @@ class GoogleReportViewer(webapp2.RequestHandler):
         progress = int((current_pages * 100)/total_pages)
         
         
-        template_values={'report':report, 'pages':pages, 'progress':progress, 'user': user}
+        template_values={'head': head, 'footer': footer, 'report':report, 'pages':pages, 'progress':progress, 'user': user}
         template = JINJA_ENVIRONMENT.get_template('template/google_report_view.html')
         self.response.write(template.render(template_values))
         
@@ -829,6 +836,7 @@ class GooglePageViewer(webapp2.RequestHandler):
         
         
         template_values={
+            'head': head, 'footer': footer, 
             'web': report.web,
             'scoreUsability': scoreUsability,
             'scoreSpeed': scoreSpeed,
@@ -849,6 +857,7 @@ class Users(webapp2.RequestHandler):
         
         error_message = ''
         progress = 0
+        users = ''
         if self.request.cookies.get("name"):
             try:
                 username = self.request.cookies.get("name")
@@ -870,7 +879,7 @@ class Users(webapp2.RequestHandler):
             except:
                 error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
                 
-            template_values={'progress':progress,'users':users, 'error_message':error_message}
+            template_values={'head':head, 'footer':footer, 'progress':progress,'users':users, 'error_message':error_message}
             template = JINJA_ENVIRONMENT.get_template('template/users.html')
             self.response.write(template.render(template_values))
                 
@@ -978,32 +987,49 @@ class RankingReports(webapp2.RequestHandler):
                 qry2 = entities.PageResultGoogle.query(entities.PageResultGoogle.user == user.name).order(entities.PageResultGoogle.number)
                     
                 if qry.count() + qry2.count() == user.n_links:
-                
+                    
                     insertReport(username,'HTML',True)
                     insertReport(username,'WCAG2-A',True)
                     insertReport(username,'WCAG2-AA',True)
                     insertReport(username,'CHECK AVAILABILITY',True)
                     insertGoogleReport(username,True)
+                        
+                    html_test = None
+                    wcag2A_test = None
+                    wcag2AA_test = None
+                    availability_test = None
                     
-                    html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
-                    while html_test.web != user.root_link:
-                        html_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'HTML').get()
-                        
-                    wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
-                    while wcag2A_test.web != user.root_link:
-                        wcag2A_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-A').get()
-                    wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
-                    while wcag2AA_test.web != user.root_link:
-                        wcag2AA_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'WCAG2-AA').get()
-                    availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get()
-                    while availability_test.web != user.root_link:
-                        availability_test = entities.Report.query(entities.Report.isRank == True and entities.Report.web == user.root_link and entities.Report.validation_type == 'CHECK AVAILABILITY').get()
-                        
+                    html_tests = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == 'HTML').fetch()
+                    for test in html_tests:
+                        if test.web == user.root_link:
+                            html_test = test
+                    
+                    wcag2A_tests = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-A').fetch()
+                    for test in wcag2A_tests:
+                        if test.web == user.root_link:
+                            wcag2A_test = test
+                            
+                    wcag2AA_tests = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == 'WCAG2-AA').fetch()
+                    for test in wcag2AA_tests:
+                        if test.web == user.root_link:
+                            wcag2AA_test = test
+                            
+                    availability_tests = entities.Report.query(entities.Report.isRank == True and entities.Report.validation_type == 'CHECK AVAILABILITY').fetch()
+                    for test in availability_tests:
+                        if test.web == user.root_link:
+                            availability_test = test
+                            
                     mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
-                    while mobile_test.web != user.root_link:
-                        mobile_test = entities.ReportGoogle.query(entities.ReportGoogle.isRank == True and entities.ReportGoogle.web == user.root_link).get()
                     
-                    reportRank = entities.ReportRank()
+                    reportRank = None
+                    reportsRank = entities.ReportRank.query().fetch()
+                    for report in reportsRank:
+                        if report.web == user.root_link:
+                            reportRank = report
+                    
+                    if reportRank is None:
+                        reportRank = entities.ReportRank()
+                    
                     reportRank.web = user.root_link
                     reportRank.user = user.name
                     reportRank.html_test = str(html_test.key.id())
@@ -1014,7 +1040,7 @@ class RankingReports(webapp2.RequestHandler):
                     
                     # Para calcular la puntuación usamos la media geométrica de las puntuaciones de cada informe
                     
-                    reportRank.score = (html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score * mobile_test.score)**(1/5.0)
+                    reportRank.score = round(((html_test.score * wcag2A_test.score * wcag2AA_test.score * availability_test.score * mobile_test.score)**(1/5.0)),1)
                     #print type(mobile_test.score)
                     
                     reportRank.put()
@@ -1048,7 +1074,7 @@ class RankingReports(webapp2.RequestHandler):
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'error_message': error_message, 'progress':progress, 'user': user}
+            template_values={'head': head, 'footer': footer, 'reports':reports, 'error_message': error_message, 'progress':progress, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/ranking_reports.html')
             self.response.write(template.render(template_values))
         
@@ -1100,9 +1126,43 @@ class RankingReportViewer(webapp2.RequestHandler):
                 
             self.response.headers['Content-Type'] = 'text/html'
             
-            template_values={'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress, 'user':user}
+            template_values={'head': head, 'footer': footer, 'reports':reports, 'reportsGoogle':reportsGoogle, 'error_message': error_message, 'progress':progress, 'user':user}
             template = JINJA_ENVIRONMENT.get_template('template/ranking_reports_viewer.html')
             self.response.write(template.render(template_values))
+        
+        else:
+            self.redirect('/login')
+            
+class CancelValidation(webapp2.RequestHandler):
+    def get(self):
+        
+        if self.request.cookies.get("name"):
+            
+            username = self.request.cookies.get("name")
+            user = entities.User.query(entities.User.name == username).get()
+        
+            alphaqueue = taskqueue.Queue('alphaqueue')
+            alphaqueue.purge()
+            
+            time.sleep(2)
+            
+            ndb.delete_multi(
+                entities.PageResult.query().fetch(keys_only=True)
+            )
+            
+            ndb.delete_multi(
+                entities.PageResultGoogle.query().fetch(keys_only=True)
+            )
+            
+            # Reset global variables for user
+            user.n_links = -1
+            user.root_link = ''
+            user.validation_type = ''
+            user.onlyDomain = None
+            user.lock = False
+            user.put()
+            
+            self.redirect('/')
         
         else:
             self.redirect('/login')
@@ -1129,6 +1189,7 @@ urls = [('/',MainPage),
         ('/ranking-reports-viewer',RankingReportViewer),
         ('/delete-report',DeleteReport),
         ('/delete-ranking-report',DeleteRankingReport),
+        ('/cancel-validation',CancelValidation),
        ]
 
 application = webapp2.WSGIApplication(urls, debug=True)

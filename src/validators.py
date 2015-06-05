@@ -124,7 +124,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain):
             if not(link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or \
             link.endswith('.ico') or link.endswith('.gif') or link.endswith('.iso') or link.endswith('.mp3') or \
             link.endswith('.pdf') or  link.endswith('.xml') or len(link) > 450 or ('mailto' in link) or \
-            root == link+'/' or '#' in link) or ('JavaScript:void(0)' in link) :
+            root == link+'/' or '#' in link or 'JavaScript:' in link or 'javascript:' in link):
                        
                 if link in css_links:
                     page_type = 'css'
