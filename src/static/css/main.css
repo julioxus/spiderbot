@@ -1,3 +1,10 @@
+html,
+body {
+	margin:0;
+	padding:0;
+	height:100%;
+}
+
 body {
   padding-top: 50px;
 }
@@ -254,13 +261,29 @@ table.urlBlock{
 	float: left;
 }
 
+#wrap {
+	min-height:100%;
+	position:relative;
+}
+
+#content {
+	padding-bottom:200px; /* Height of the footer element */
+}
+
 #footer {
-  height: 60px;
+  clear: both;
   background-color: #101010;
-  margin-top: 100px;
   width: 100%;
-  height: 100px;
+  height: 150px;
   padding: 20px;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
+
+#footer a{
+	float: right;
+	margin: 5px;
 }
 
 #score_row{
@@ -271,4 +294,16 @@ table.urlBlock{
 	margin-top: 10px;
 	margin-bottom: 10px;
 	background-color: #E6E6E6
+}
+
+
+#ugr_link{
+	clear: both;
+	background-image: url("../images/logo_footer_ugr.png");
+	background-repeat: no-repeat;
+	background-size: 200px 115px;
+	background-position: right;
+	padding-top: 35px;
+	padding-right: 200px;
+	text-indent: -9999px;
 }

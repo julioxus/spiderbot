@@ -5,134 +5,136 @@
   {{head|safe}}
 
   <body>
-  
-    <nav class="navbar navbar-inverse navbar-fixed-top">
-      <div class="container">
-        <div class="navbar-header">
-          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
-            <span class="sr-only">Toggle navigation</span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-            <span class="icon-bar"></span>
-          </button>
-          <a class="navbar-brand" href="/">Spiderbot</a>
-        </div>
-        <div id="navbar" class="collapse navbar-collapse">
-          <ul class="nav navbar-nav">
-            <li class="active"><a href="/">Home</a></li>
-            <li><a href="/reports">Reports</a></li>
-            <li><a href="/ranking-reports">Ranking Reports</a></li>
-            <li><a href="/rankings">Rankings</a></li>
-            {% if user.group == 'Admin' %}
-            <li><a href="/users">Users</a>
-            {% endif %}
-            <li><a href="#about">About</a></li>
-            <li><a href="#contact">Contact</a></li>
-          </ul>
-          <input id="button-logout" name="button-logout" type="button" value="Log Out" onclick="location.href='/logout';" class="btn btn-warning" />
-          {% if user.lock %}
-          <input id="button-cancel" name="button-cancel" type="button" value="Cancel Validation" onclick="location.href='/cancel-validation';" class="btn btn-primary" />
-          {% endif %}
-        </div><!--/.nav-collapse -->
-      </div>
-    </nav>
-    
-    <div id="progress-bar" class="progress progress-striped active">
-	  <div id="pbar" class="progress-bar" role="progressbar"
-	       aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
-	       style="width: {{progress}}%">
-	    <span class="sr-only"></span>
-	  </div>
+  	<div id="wrap">
+  		<div id="content">
+		    <nav class="navbar navbar-inverse navbar-fixed-top">
+		      <div class="container">
+		        <div class="navbar-header">
+		          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+		            <span class="sr-only">Toggle navigation</span>
+		            <span class="icon-bar"></span>
+		            <span class="icon-bar"></span>
+		            <span class="icon-bar"></span>
+		          </button>
+		          <a class="navbar-brand" href="/">Spiderbot</a>
+		        </div>
+		        <div id="navbar" class="collapse navbar-collapse">
+		          <ul class="nav navbar-nav">
+		            <li class="active"><a href="/">Home</a></li>
+		            <li><a href="/reports">Reports</a></li>
+		            <li><a href="/ranking-reports">Ranking Reports</a></li>
+		            <li><a href="/rankings">Rankings</a></li>
+		            {% if user.group == 'Admin' %}
+		            <li><a href="/users">Users</a>
+		            {% endif %}
+		            <li><a href="#about">About</a></li>
+		            <li><a href="#contact">Contact</a></li>
+		          </ul>
+		          <input id="button-logout" name="button-logout" type="button" value="Log Out" onclick="location.href='/logout';" class="btn btn-warning" />
+		          {% if user.lock %}
+		          <input id="button-cancel" name="button-cancel" type="button" value="Cancel Validation" onclick="location.href='/cancel-validation';" class="btn btn-primary" />
+		          {% endif %}
+		        </div><!--/.nav-collapse -->
+		      </div>
+		    </nav>
+		    
+		    <div id="progress-bar" class="progress progress-striped active">
+			  <div id="pbar" class="progress-bar" role="progressbar"
+			       aria-valuenow="45" aria-valuemin="0" aria-valuemax="100"
+			       style="width: {{progress}}%">
+			    <span class="sr-only"></span>
+			  </div>
+			</div>
+		
+		    <div class="container">
+		
+		      <div class="starter-template">
+		      	<img id="logo" src="static/images/logo.png" />
+		        <h1>Enter URL to diagnose</h1>
+		      </div>
+		
+		    </div><!-- /.container -->
+		    <div class="container" id="web_input_form">
+			    <form class="form-inline" role="form" method="post" action="/qvalidation">
+				  <div class="form-group" id="input_bar">
+				    <label class="sr-only" for="url">Enter your web page</label>
+				    <input type="url" class="form-control" id="url" name="url" onblur="checkURL(this)"
+				           placeholder="Enter your web page">
+				  </div>
+				  <button type="submit" class="btn btn-default">Go!</button>
+				  <br/><br/>
+				  <table>
+					  <tr>
+					  	<th>Web standards</th>
+					  	<th>Accesibility</th>
+					  	<th>Usability</th>
+					  	{% if user.group == 'Admin' %}
+					  	<th>Ranking</th>
+					  	{% endif %}
+					  </tr>
+					  <tr>
+						  <td>
+						  <label class="radio-inline">
+					      	<input value="HTML" type="radio" name="optradio" checked>Validate HTML/XHTML/CSS
+						  </label>
+						  </td>
+						  <td>
+						  <label class="radio-inline">
+						  	<input value="WCAG2-A" type="radio" name="optradio">Validate WCAG 2.0-A
+						  </label>
+						  </td>
+						  <td>
+						  <label class="radio-inline">
+						  	<input value="MOBILE" type="radio" name="optradio">Google Mobile Check
+						  </label>
+						  </td>
+						  {% if user.group == 'Admin' %}
+						  <td>
+						  <label class="radio-inline">
+						  	<input value="RANK" type="radio" name="optradio">Ranking test
+						  </label>
+						  </td>
+						  {% endif %}
+					  </tr>
+					  <tr>
+					  	  <td/>
+					  	  <td>
+					  	  <label class="radio-inline">
+						  	<input value="WCAG2-AA" type="radio" name="optradio">Validate WCAG 2.0-AA
+						  </label>
+						  </td>
+						  <td/>
+						  {% if user.group == 'Admin' %}<td/>{% endif %}
+					  </tr>
+					  <tr>
+					  	<td/>
+					  	<td>
+						  <label class="radio-inline">
+							  	<input value="CHECK AVAILABILITY" type="radio" name="optradio">Check availability
+						  </label>
+						  </td>
+						  <td/>
+						  {% if user.group == 'Admin' %}<td/>{% endif %}
+					  </tr>
+					</table>
+					  <br/><br/>
+					  <div class="form-group">
+					    <label for="depth">Depth level</label>
+					    <input type="number" class="form-control" id="depth" name="depth" value="{{DEFAULT_DEPTH}}">
+					  </div>
+					  <div class="form-group">
+					    <label for="max_pags">Max pages</label>
+					    <input type="number" class="form-control" id="max_pags" name="max_pags" value="{{DEFAULT_MAX_PAGS}}">
+					  </div>
+					  <div class="form-group">
+					    <label for="onlyDomain">Only domain</label>
+					    <input checked="checked" type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
+					  </div>
+				</form>
+			</div>
+		</div>
+		{{footer|safe}}
 	</div>
-
-    <div class="container">
-
-      <div class="starter-template">
-      	<img id="logo" src="static/images/logo.png" />
-        <h1>Enter URL to diagnose</h1>
-      </div>
-
-    </div><!-- /.container -->
-    <div class="container" id="web_input_form">
-	    <form class="form-inline" role="form" method="post" action="/qvalidation">
-		  <div class="form-group" id="input_bar">
-		    <label class="sr-only" for="url">Enter your web page</label>
-		    <input type="url" class="form-control" id="url" name="url" onblur="checkURL(this)"
-		           placeholder="Enter your web page">
-		  </div>
-		  <button type="submit" class="btn btn-default">Go!</button>
-		  <br/><br/>
-		  <table>
-			  <tr>
-			  	<th>Web standards</th>
-			  	<th>Accesibility</th>
-			  	<th>Usability</th>
-			  	{% if user.group == 'Admin' %}
-			  	<th>Ranking</th>
-			  	{% endif %}
-			  </tr>
-			  <tr>
-				  <td>
-				  <label class="radio-inline">
-			      	<input value="HTML" type="radio" name="optradio" checked>Validate HTML/XHTML/CSS
-				  </label>
-				  </td>
-				  <td>
-				  <label class="radio-inline">
-				  	<input value="WCAG2-A" type="radio" name="optradio">Validate WCAG 2.0-A
-				  </label>
-				  </td>
-				  <td>
-				  <label class="radio-inline">
-				  	<input value="MOBILE" type="radio" name="optradio">Google Mobile Check
-				  </label>
-				  </td>
-				  {% if user.group == 'Admin' %}
-				  <td>
-				  <label class="radio-inline">
-				  	<input value="RANK" type="radio" name="optradio">Ranking test
-				  </label>
-				  </td>
-				  {% endif %}
-			  </tr>
-			  <tr>
-			  	  <td/>
-			  	  <td>
-			  	  <label class="radio-inline">
-				  	<input value="WCAG2-AA" type="radio" name="optradio">Validate WCAG 2.0-AA
-				  </label>
-				  </td>
-				  <td/>
-				  {% if user.group == 'Admin' %}<td/>{% endif %}
-			  </tr>
-			  <tr>
-			  	<td/>
-			  	<td>
-				  <label class="radio-inline">
-					  	<input value="CHECK AVAILABILITY" type="radio" name="optradio">Check availability
-				  </label>
-				  </td>
-				  <td/>
-				  {% if user.group == 'Admin' %}<td/>{% endif %}
-			  </tr>
-			</table>
-			  <br/><br/>
-			  <div class="form-group">
-			    <label for="depth">Depth level</label>
-			    <input type="number" class="form-control" id="depth" name="depth" value="{{DEFAULT_DEPTH}}">
-			  </div>
-			  <div class="form-group">
-			    <label for="max_pags">Max pages</label>
-			    <input type="number" class="form-control" id="max_pags" name="max_pags" value="{{DEFAULT_MAX_PAGS}}">
-			  </div>
-			  <div class="form-group">
-			    <label for="onlyDomain">Only domain</label>
-			    <input checked="checked" type="checkbox" class="checkbox" id="onlyDomain" name="onlyDomain" value="True">
-			  </div>
-		</form>
-	</div>
-	
-	{{footer|safe}}
 
     <!-- Bootstrap core JavaScript
     ================================================== -->
