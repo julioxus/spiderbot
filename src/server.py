@@ -172,7 +172,7 @@ class QueueValidation(webapp2.RequestHandler):
 class Validation(webapp2.RequestHandler):
     def post(self):
         state = 'ERROR'
-        retrys = 3
+        retrys = 5
         option = self.request.get('optradio')
         
         while retrys > 0 and state == 'ERROR' or (state == 'FAIL' and option == 'CHECK AVAILABILITY') :
@@ -338,7 +338,6 @@ def insertReport(username,validation_type,isRank):
     else:
         report = entities.Report()
 
-    report = entities.Report()
     report.web = user.root_link
     report.validation_type = validation_type
     report.onlyDomain = user.onlyDomain
@@ -389,9 +388,10 @@ def insertReport(username,validation_type,isRank):
     value1 = error_pages / pages # Number of error pages ratio
      
     if error_pages > 0:
-        value2 = distinct_errors / error_pages # Distinct errors by error page (estimated mean)
+        value2 = distinct_errors / pages # Distinct errors by page (estimated mean)
     else:
         value2 = 0
+        
     
     # Normalize both values
      
@@ -408,19 +408,27 @@ def insertReport(username,validation_type,isRank):
     # Para el segundo valor establecermos el rango [0 100]
      
     # 0 implica que no existen errores distintos y sería la maxima nota
-    # 100 implicaria que existen mas de 100 fallos distintos por página con error
-    # Limitamos en 100 por tanto
+    # 10 implicaria que existen mas de 10 fallos distintos por página con error
+    # Limitamos en 10 por tanto
+    
+    
+    # Función ajustada a la curva
+    
+    a = 1.595;
+    b = 0.005949;
+    
+    value2 = a*value2/(1+b*value2*value2)
      
-    if value2>=100:
-        value2 = 100
+    if value2>=10:
+        value2 = 10
      
-    # Dividimos el resultado entre 10 para puntuar sobre 10 y obtenemos el inverso
+    # Obtenemos el inverso
      
-    value2_norm = 10 - value2 / 10;
+    value2_norm = 10 - value2;
      
     # Ya podemos calcular la puntuacion
      
-    score = round(0.5 * value1_norm + 0.5 * value2_norm,1)
+    score = round(0.25 * value1_norm + 0.75 * value2_norm,1)
     if validation_type == 'CHECK AVAILABILITY':
         score = round(value1_norm)
     
