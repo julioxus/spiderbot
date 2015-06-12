@@ -9,12 +9,11 @@ from google.appengine.api import taskqueue
 import urllib2
 import time
 from google.appengine.ext import ndb
-from webapp2_extras.config import DEFAULT_VALUE
 import json
 
-import validators
+from spiderbot import validators
+from spiderbot import parsers
 import model
-import parsers
 
 DEFAULT_MAX_PAGS = 25
 '''páginas por defecto'''
@@ -63,7 +62,7 @@ class MainPage(webapp2.RequestHandler):
                 progress = int((current_pages * 100)/total_pages)
                 
             except:
-                error_message = 'Error accessing the database: Required more quota than is available. Come back after 24h.'
+                print ''
             
             template_values={'head': head, 'footer': footer, 'progress':progress, 'DEFAULT_MAX_PAGS': DEFAULT_MAX_PAGS, 'DEFAULT_DEPTH': DEFAULT_DEPTH, 'user': user}
             template = JINJA_ENVIRONMENT.get_template('template/index.html')
@@ -1068,7 +1067,7 @@ class CreateUser(webapp2.RequestHandler):
         "Admin" recibirá el mensaje: "Unauthorized".
         
         @type create-name: str
-        @param create-name nombre e identificador de usuario
+        @param create-name: nombre e identificador de usuario
         @type create-full_name: str
         @param create-full_name: nombre completo
         @type create-email: str
