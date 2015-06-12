@@ -7,26 +7,40 @@ import json
 from lxml import etree
 import lxml.html
 import urllib2
+import re
 
-# REST APIs for validation
+# APIs REST para validar
 html_validator_url = 'http://validator.w3.org/check'
+'''URL del validador HTML'''
 css_validator_url = 'http://jigsaw.w3.org/css-validator/validator'
+'''URL del validador CSS'''
 wcag_validator_url = 'http://achecker.ca/checkacc.php'
+'''URL del validador WCAG'''
 ACHECKER_ID = '8d50ba76d166da61bdc9dfa3c97247b32dd1014c'
+'''Clave para usar la API de AChecker'''
 pagespeed_api_url = 'https://www.googleapis.com/pagespeedonline/v2/runPagespeed'
+'''URL del validador de Google para móviles'''
 GOOGLE_API_KEY = 'AIzaSyDmU2XjCiUJdMyDDhX8AQ8n-4vye8i5Uzk'
+'''Clave para usar la API de Google'''
 
 def validate(filename,page_type):
     '''
-    Validate file and return JSON result as dictionary.
-    'filename' can be a file name or an HTTP URL.
-    Return '' if the validator does not return valid JSON.
-    Raise OSError if curl command returns an error status.
+    Valida una web HTML o CSS y devuelve un JSON resultado como diccionario.
+    
+    @type finename: str
+    @param filename: nombre de URL HTTP
+    @type page_type: str
+    @param paga_type: tipo de página que se quiere validar. Puede ser:
+        - html
+        - css
+        
+    @rtype: dict
+    @return: diccionario JSON que contiene los resultados de la validación. Si la validación no es correcta devuelve ''
     '''
     
     if filename.startswith('http://') or filename.startswith('https://'):
-        # Submit URI with GET.
-        urlfetch.set_default_fetch_deadline(60)
+        # Envía URI con GET.
+        urlfetch.set_default_fetch_deadline(120)
         if page_type == 'css':
             payload = {'uri': filename, 'output': 'json', 'warning': 0}
             encoded_args = urllib.urlencode(payload)
@@ -40,14 +54,27 @@ def validate(filename,page_type):
             r = urllib2.urlopen(url)
      
         result = json.load(r)
-        #time.sleep(2)   # Be nice and don't hog the free validator service.
         return result
     else:
         return ''
 
     
 def validateWCAG(filename,guide):
-    urlfetch.set_default_fetch_deadline(60)
+    '''
+    Valida una web con el estándar WCAG 2.0
+    
+    @type filename: str
+    @param filename: nombre de URL HTTP
+    @type guide: str
+    @param guide: directrices de WCAG 2.0. Puede ser:
+        - WCAG2-A
+        - WCAG2-AA
+        - WCAG2-AAA
+        
+    @rtype: dict
+    @return: diccionario que contiene los resultados de la validación. Si la validación no es correcta devuelve ''
+    '''
+    urlfetch.set_default_fetch_deadline(120)
     code = checkAvailability(filename)
     if code >= 200 and code < 300:
         payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': guide, 'output': 'html'}
@@ -81,6 +108,15 @@ def validateWCAG(filename,guide):
         return ''
     
 def checkAvailability(filename):
+    '''
+    Comprueba la disponibilidad de una web.
+    
+    @type filename: str
+    @param filename: nombre de la URL HTTP
+    
+    @rtype: int
+    @return: código que devuelve el servidor ante la petición GET
+    '''
     urlfetch.set_default_fetch_deadline(60)
     try:
         response = urllib2.urlopen(filename)
@@ -97,65 +133,98 @@ def checkAvailability(filename):
         return -1
     
 # Get all links from a root url given a depth scan level
-def getAllLinks(root,depth,max_pages,onlyDomain):
+def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
+    '''
+    Algoritmo principal de la araña. Obtiene los links de la página raíz root con una búsqueda en anchura,
+    determinada por una profundidad de búsqueda depth y número máximo de páginas max_pages. Puede filtrar
+    páginas si se indica que sólo busque en su propio dominio o usar una expresión reguar reg.
     
+    @type root: str
+    @param root: página raíz
+    @type depth: int
+    @param depth: profundidad de búsqueda
+    @type max_pages: int
+    @param max_pages: links que se obtendrán como máximo
+    @type onlyDomain: bool
+    @param onlyDomain: indica si se quieren filtar páginas que estén sólo en su dominio
+    @type reg: str
+    @param str: expresión regular para filtrar páginas en la obtención de links
+    
+    @rtype: list
+    @return: lista de enlaces compuesta por objetos de tipo tupla con dos valores:
+        - 0: nombre del enlace
+        - 1: tipo de enlace: html o css
+    '''
     links = []
     if not root.endswith('/'):
         root = root + '/'
     links.append((str(root),'html'))
     max_reached = False
-    i = 0
+    pattern = re.compile(reg);
     
-    for i in range(0,depth):
-        
-        try:
-            #connect to a URL
-            website = urllib2.urlopen(links[i][0])
-            #read html code
-            html = website.read()
-        except urllib2.HTTPError, error:
-            html = error.read()
-            print html
-        
-        dom =  lxml.html.fromstring(html)
-        
-        document_links = dom.xpath('//a/@href | //link/@href')
-        css_links = dom.xpath('//*[@rel="stylesheet"]/@href')
-        nofollow_links = dom.xpath('//*[@rel="nofollow"]/@href')
-        
-        for link in document_links: # select the url in href for all a and link tags(links)
+    n = 0 # Número de enlaces HTML encontrados hasta el momento
+    i = 0 # Enlace analizando actualmente
+    
+    while n < depth:
+        if links[i][1] != 'css':
+            try:
+                # Establecer conexión con la URL
+                website = urllib2.urlopen(links[i][0])
+                # Leer el código HTML
+                html = website.read()
+            except urllib2.HTTPError, error:
+                html = error.read()
             
-            if not(link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or \
-            link.endswith('.ico') or link.endswith('.gif') or link.endswith('.iso') or link.endswith('.mp3') or \
-            link.endswith('.pdf') or  link.endswith('.xml') or len(link) > 450 or ('mailto' in link) or \
-            root == link+'/' or ('#' in link) or ('JavaScript:' in link) or ('javascript:' in link) or (link in nofollow_links)):
-                       
-                if link in css_links:
-                    page_type = 'css'
-                else:
-                    page_type = 'html'
-                    
+            dom =  lxml.html.fromstring(html)
+            
+            document_links = dom.xpath('//a/@href | //link/@href') # lista de links totales
+            css_links = dom.xpath('//*[@rel="stylesheet"]/@href') # lista de links CSS
+            nofollow_links = dom.xpath('//*[@rel="nofollow"]/@href') # Las etiquetas "nofollow" no se analizarán
+            
+            for link in document_links: # recorremos los links
                 
-                if link.startswith('http'):
-                    if not ((link,page_type) in links):
-                        if onlyDomain:
-                            if link.startswith(root):
+                # Si se encuentra la expresión regular       
+                if pattern.search(link):
+                    
+                    # Descartamos los enlaces que contengan lo siguiente:
+                    if not(link.endswith('.jpg') or link.endswith('.png') or link.endswith('.js') or \
+                    link.endswith('.ico') or link.endswith('.gif') or link.endswith('.iso') or link.endswith('.mp3') or \
+                    link.endswith('.pdf') or  link.endswith('.xml') or len(link) > 450 or ('mailto' in link) or \
+                    root == link+'/' or ('#' in link) or ('JavaScript:' in link) or ('javascript:' in link) or
+                    (link in nofollow_links)):
+                               
+                        if link in css_links:
+                            page_type = 'css'
+                        else:
+                            page_type = 'html'
+                            
+                        
+                        if link.startswith('http'):
+                            if not ((link,page_type) in links):
+                                if onlyDomain:
+                                    if link.startswith(root):
+                                            links.append((link,page_type))
+                                else:
                                     links.append((link,page_type))
                         else:
-                            links.append((link,page_type))
-                else:
-                    if link.startswith('/'):
-                        link = link[1:]  
-                    link = root + link
-                    if not ((link,page_type) in links):
-                        links.append((link,page_type))               
-                         
-                while len(links) > max_pages:
-                    links.pop()
-                    max_reached = True
-                    
-                if max_reached:
-                    break
+                            if link.startswith('/'):
+                                link = link[1:]  
+                            link = root + link
+                            if not ((link,page_type) in links):
+                                links.append((link,page_type))               
+                                 
+                        while len(links) > max_pages:
+                            links.pop()
+                            max_reached = True
+                            
+                        if max_reached:
+                            break
+            n+=1
+            
+        i+=1
+        
+    if not pattern.search(links[0][0]):
+        del links [0]
         
     return links
 
@@ -176,6 +245,15 @@ def html_decode(s):
     return s
 
 def GoogleMobileValidation(filename):
+    '''
+    Valida la página filename usando el validador de Google para móviles.
+    
+    @type filename: str
+    @param filename: nombre de la URL HTTP
+    
+    @rtype: dict
+    @return: diccionario JSON que contiene los resultados de la validación. Si la validación no es correcta devuelve ''
+    '''
     if filename.startswith('http://') or filename.startswith('https://'):
         # Submit URI with GET.
         urlfetch.set_default_fetch_deadline(60)
@@ -185,7 +263,6 @@ def GoogleMobileValidation(filename):
         r = urllib2.urlopen(url)
      
         result = json.load(r)
-        #time.sleep(2)   # Be nice and don't hog the free validator service.
         return result
     else:
         return ''
