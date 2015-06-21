@@ -147,7 +147,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
     @type onlyDomain: bool
     @param onlyDomain: indica si se quieren filtar páginas que estén sólo en su dominio
     @type reg: str
-    @param str: expresión regular para filtrar páginas en la obtención de links
+    @param reg: expresión regular para filtrar páginas en la obtención de links
     
     @rtype: list
     @return: lista de enlaces compuesta por objetos de tipo tupla con dos valores:
@@ -179,6 +179,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
             document_links = dom.xpath('//a/@href | //link/@href') # lista de links totales
             css_links = dom.xpath('//*[@rel="stylesheet"]/@href') # lista de links CSS
             nofollow_links = dom.xpath('//*[@rel="nofollow"]/@href') # Las etiquetas "nofollow" no se analizarán
+            alternate_links = dom.xpath('//*[@rel="alternate"]/@href') # Las etiquetas "alternate" no se analizarán
             
             for link in document_links: # recorremos los links
                 
@@ -190,7 +191,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
                     link.endswith('.ico') or link.endswith('.gif') or link.endswith('.iso') or link.endswith('.mp3') or \
                     link.endswith('.pdf') or  link.endswith('.xml') or len(link) > 450 or ('mailto' in link) or \
                     root == link+'/' or ('#' in link) or ('JavaScript:' in link) or ('javascript:' in link) or
-                    (link in nofollow_links)):
+                    (link in nofollow_links) or (link in alternate_links)):
                                
                         if link in css_links:
                             page_type = 'css'

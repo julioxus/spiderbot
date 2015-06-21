@@ -312,3 +312,18 @@ table.urlBlock{
 	padding-right: 200px;
 	text-indent: -9999px;
 }
+
+table#ranking-table{
+	background-color: orange;
+	font-size: 200%;
+}
+
+table#ranking-table th, table#ranking-table td{
+	padding: 20px;
+}
+
+table#ranking-table input{
+	width:1em;
+	height:1em;
+	position: relative;
+}

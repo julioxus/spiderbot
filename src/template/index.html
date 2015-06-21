@@ -74,9 +74,6 @@
 					  	<th>Web standards</th>
 					  	<th>Accesibility</th>
 					  	<th>Usability</th>
-					  	{% if user.group == 'Admin' %}
-					  	<th>Ranking</th>
-					  	{% endif %}
 					  </tr>
 					  <tr>
 						  <td>
@@ -94,13 +91,7 @@
 						  	<input value="MOBILE" type="radio" name="optradio">Google Mobile Check
 						  </label>
 						  </td>
-						  {% if user.group == 'Admin' %}
-						  <td>
-						  <label class="radio-inline">
-						  	<input value="RANK" type="radio" name="optradio">Ranking test
-						  </label>
-						  </td>
-						  {% endif %}
+						  
 					  </tr>
 					  <tr>
 					  	  <td/>
@@ -110,7 +101,6 @@
 						  </label>
 						  </td>
 						  <td/>
-						  {% if user.group == 'Admin' %}<td/>{% endif %}
 					  </tr>
 					  <tr>
 					  	<td/>
@@ -120,9 +110,21 @@
 						  </label>
 						  </td>
 						  <td/>
-						  {% if user.group == 'Admin' %}<td/>{% endif %}
 					  </tr>
 					</table>
+					<br/><br/>
+					{% if user.group == 'Admin' %}
+					<table id="ranking-table">
+					  	<th>Ranking</th>
+					  	
+						  <td>
+						  <label class="radio-inline">
+						  	<input value="RANK" type="radio" name="optradio">
+						  </label>
+						  <span id="ranking-text">Ranking test</span>
+						  </td>
+					</table>
+					{% endif %}
 					  <br/><br/>
 					  <div class="form-group">
 					    <label for="depth">Depth level</label>
