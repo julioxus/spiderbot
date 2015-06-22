@@ -1,0 +1,36 @@
+#!/bin/bash
+### BEGIN INIT INFO
+# Provides:          spiderbot
+# Required-Start:    $syslog
+# Required-Stop:     $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: 
+# Description:
+#
+### END INIT INFO
+
+#DEMONIO
+
+cd /usr/local/bin/spiderbot
+
+case "$1" in
+  start)
+    echo "Iniciando spiderbot..."
+    ./run.sh
+  ;;
+  stop)
+    echo "Apagando spiderbot..."
+    ./destroy.sh
+  ;;
+  restart)
+	echo "Reiniciando spiderbot..."
+	./destroy.sh
+	./run.sh
+  ;;
+  *)
+    echo "Uso: $0 {start|stop|restart}"
+    exit 1
+esac
+
+exit 0
