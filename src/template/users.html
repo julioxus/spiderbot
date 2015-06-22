@@ -24,8 +24,6 @@
 		            <li><a href="/ranking-reports">Ranking Reports</a></li>
 		            <li><a href="/rankings">Rankings</a></li>
 		            <li class="active"><a href="/users">Users</a>
-		            <li><a href="#about">About</a></li>
-		            <li><a href="#contact">Contact</a></li>
 		          </ul>
 		          <input id="button-logout" name="button-logout" type="button" value="Log Out" onclick="location.href='/logout';" class="btn btn-warning" />
 		          {% if user.lock %}
@@ -241,7 +239,7 @@
    
    function validateForm(){
 
-        cadena = "^[a-z]+@[a-z]+\.[a-z]{2,4}$"; 
+        cadena = "^[a-z]+@[a-z]+(\.[a-z]{2,4})+$"; 
         reCorreo = new RegExp(cadena);
 
         if (!(document.forms["form-create"]["create-email"].value.match(reCorreo))) {

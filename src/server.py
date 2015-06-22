@@ -270,7 +270,7 @@ class Validation(webapp2.RequestHandler):
         retrys = 3
         option = self.request.get('optradio')
         
-        while retrys > 0 and state == 'ERROR' or (state == 'FAIL' and option == 'CHECK AVAILABILITY') :
+        while retrys > 0 and (state == 'ERROR' or (state == 'FAIL' and option == 'CHECK AVAILABILITY') ):
             
             content = ''
             

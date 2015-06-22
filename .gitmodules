@@ -1,0 +1,3 @@
+[submodule "GoogleAppEngineSDK"]
+	path = GoogleAppEngineSDK
+	url = https://github.com/julioxus/GoogleAppEngineSDK
