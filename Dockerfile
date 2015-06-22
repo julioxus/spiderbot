@@ -23,3 +23,6 @@ bash install.sh
 
 # Iniciamos el servicio
 RUN service spiderbot restart
+
+# Exponemos puerto 80
+EXPOSE 80
