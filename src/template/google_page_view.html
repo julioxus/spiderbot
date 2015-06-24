@@ -53,7 +53,7 @@ Julio Martínez Martínez-Checa, Student at the University of Granada.
 		            <li><a href="/rankings">Rankings</a></li>
 		            {% if user.group == 'Admin' %}
 		            <li><a href="/users">Users</a>
-		            {% endif %}>
+		            {% endif %}
 		          </ul>
 		          <input id="button-logout" name="button-logout" type="button" value="Log Out" onclick="location.href='/logout';" class="btn btn-warning" />
 		          {% if user.lock %}
