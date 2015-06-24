@@ -398,7 +398,7 @@ def insertReport(username,validation_type,isRank):
     '''
     list_errors = []
     user = model.User.query(model.User.name == username).get()
-    qry = model.PageResult.query(model.PageResult.user == user.name and model.PageResult.validation_type == validation_type).order(model.PageResult.number)
+    qry = model.PageResult.query(model.PageResult.user == user.name).filter(model.PageResult.validation_type == validation_type).order(model.PageResult.number)
    
     report = None
     
@@ -821,7 +821,7 @@ def insertGoogleReport(username,isRank):
        
     # Update if rank report of this web already exists
     if isRank:
-        report = model.ReportGoogle.query(model.ReportGoogle.isRank == True and model.ReportGoogle.web == user.root_link ).get()
+        report = model.ReportGoogle.query(model.ReportGoogle.isRank == True).filter(model.ReportGoogle.web == user.root_link ).get()
         if report == None:
             report = model.ReportGoogle()
     else:
@@ -1222,27 +1222,19 @@ class RankingReports(webapp2.RequestHandler):
                     
                     # Obtenemos los informes asociados de la base de datos:
                     
-                    html_tests = model.Report.query(model.Report.isRank == True and model.Report.validation_type == 'HTML').fetch()
-                    for test in html_tests:
-                        if test.web == user.root_link:
-                            html_test = test
+                    html_test = model.Report.query(model.Report.isRank == True).filter(model.Report.validation_type == 'HTML')\
+                    .filter(model.Report.web == user.root_link).get()
                     
-                    wcag2A_tests = model.Report.query(model.Report.isRank == True and model.Report.validation_type == 'WCAG2-A').fetch()
-                    for test in wcag2A_tests:
-                        if test.web == user.root_link:
-                            wcag2A_test = test
+                    wcag2A_test = model.Report.query(model.Report.isRank == True).filter(model.Report.validation_type == 'WCAG2-A')\
+                    .filter(model.Report.web == user.root_link).get()
                             
-                    wcag2AA_tests = model.Report.query(model.Report.isRank == True and model.Report.validation_type == 'WCAG2-AA').fetch()
-                    for test in wcag2AA_tests:
-                        if test.web == user.root_link:
-                            wcag2AA_test = test
+                    wcag2AA_test = model.Report.query(model.Report.isRank == True).filter(model.Report.validation_type == 'WCAG2-AA')\
+                    .filter(model.Report.web == user.root_link).get()
                             
-                    availability_tests = model.Report.query(model.Report.isRank == True and model.Report.validation_type == 'CHECK AVAILABILITY').fetch()
-                    for test in availability_tests:
-                        if test.web == user.root_link:
-                            availability_test = test
+                    availability_test = model.Report.query(model.Report.isRank == True).filter(model.Report.validation_type == 'CHECK AVAILABILITY')\
+                    .filter(model.Report.web == user.root_link).get()
                             
-                    mobile_test = model.ReportGoogle.query(model.ReportGoogle.isRank == True and model.ReportGoogle.web == user.root_link).get()
+                    mobile_test = model.ReportGoogle.query(model.ReportGoogle.isRank == True).filter(model.ReportGoogle.web == user.root_link).get()
                     
                     # Creamos un informe de Ranking. Si ya existía uno lo actualizamos
                     reportRank = None

@@ -43,6 +43,12 @@ indexes:
 
 - kind: PageResult
   properties:
+  - name: user
+  - name: validation_type
+  - name: number
+
+- kind: PageResult
+  properties:
   - name: validation_type
   - name: number
 

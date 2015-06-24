@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -⁻- coding: UTF-8 -*-
+
 '''
 Spiderbot: Web Validation Robot
 Copyright (C) 2015  Julio Martínez Martínez-Checa
