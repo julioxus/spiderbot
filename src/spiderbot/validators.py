@@ -104,9 +104,9 @@ def validateWCAG(filename,guide):
     urlfetch.set_default_fetch_deadline(120)
     code = checkAvailability(filename)
     if code >= 200 and code < 300:
-        payload = {'uri': filename, 'id': ACHECKER_ID, 'guide': guide, 'output': 'html'}
+        payload = {'guide': guide, 'id': ACHECKER_ID, 'output': 'html', 'uri': filename }
         encoded_args = urllib.urlencode(payload)
-        url = wcag_validator_url + '/?' + encoded_args 
+        url = wcag_validator_url + '?' + encoded_args 
         print url
         r = urllib2.urlopen(url)
         text = r.read()
