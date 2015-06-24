@@ -189,7 +189,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
     max_reached = False
     pattern = re.compile(reg);
     
-    n = 0 # Número de enlaces HTML encontrados hasta el momento
+    n = 0 # Número de enlaces HTML parseados hasta el momento
     i = 0 # Enlace analizando actualmente
     
     while n < depth:
@@ -248,6 +248,9 @@ def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
                         if max_reached:
                             break
             n+=1
+            
+            if len(links) <= i+1:
+                break;
             
         i+=1
         
