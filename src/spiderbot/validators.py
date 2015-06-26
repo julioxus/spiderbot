@@ -254,6 +254,7 @@ def getAllLinks(root,depth,max_pages,onlyDomain, reg='.*'):
             
         i+=1
         
+    # Borramos el enlace raíz si no cumple la expresión regular    
     if not pattern.search(links[0][0]):
         del links [0]
         
