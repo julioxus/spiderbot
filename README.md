@@ -46,6 +46,11 @@ Usuario de prueba: test
 
 Contraseña: 1234
 
+## Contenedor Docker preparado
+
+https://registry.hub.docker.com/u/julioxus/spiderbot/
+
+    sudo docker pull julioxus/spiderbot
 
 ## Requisitos de la aplicación
 
