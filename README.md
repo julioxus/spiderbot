@@ -37,14 +37,17 @@ Descargamos los submódulos que faltan, GAE en este caso e iniciamos la instalac
     
 ## Parar servicio
     sudo service spiderbot stop
+    
+## Usuario administrador inicial
+ * Usuario: admin
+ * Contraseña: 1234
 
 ## Versión actual de la aplicación en funcionamiento:
 
 [Spiderbot](http://spiderbot-ugr.appspot.com/)
 
-Usuario de prueba: test
-
-Contraseña: 1234
+* Usuario de prueba: test
+* Contraseña: 1234
 
 ## Contenedor Docker preparado
 
