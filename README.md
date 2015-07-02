@@ -8,6 +8,25 @@ Aplicación web que valida los documentos web conforme a los formatos estándare
 ![logo](https://raw.githubusercontent.com/julioxus/spiderbot/master/src/static/images/logo.png)
 
 ## Instalación
+
+Actualizamos repositorios e instalamos python y pip
+
+    sudo apt-get update
+    apt-get -y install python python-setuptools build-essential python-dev
+    easy_install pip
+
+Instalamos git y clonamos el repositorio
+
+    apt-get install -y git
+    git clone https://github.com/julioxus/spiderbot.git
+
+Descargamos los submódulos que faltan, GAE en este caso e iniciamos la instalación de la aplicación que incluye el demonio de la misma
+
+    cd spiderbot && \
+    git submodule init && \
+    git submodule sync && \
+    git submodule update && \
+    chmod 755 install.sh && \
     sudo ./install.sh
     
 ## Desinstalación
