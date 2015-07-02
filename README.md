@@ -7,6 +7,18 @@ Aplicación web que valida los documentos web conforme a los formatos estándare
 
 ![logo](https://raw.githubusercontent.com/julioxus/spiderbot/master/src/static/images/logo.png)
 
+## Instalación
+    sudo ./install.sh
+    
+## Desinstalación
+    sudo ./uninstall.sh
+    
+## Ejecutar servicio
+    sudo service spirderbot start
+    
+## Parar servicio
+    sudo service spiderbot stop
+
 ## Versión actual de la aplicación en funcionamiento:
 
 [Spiderbot](http://spiderbot-ugr.appspot.com/)
